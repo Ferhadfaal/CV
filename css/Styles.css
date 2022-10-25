@@ -1,0 +1,151 @@
+body {
+  margin: 0;
+  text-align: center;
+  font-family: 'Merriweather', serif;
+
+}
+
+h1 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  padding-top: 13%;
+  padding-bottom: 0;
+  font-family: 'Sacramento', cursive;
+  font-size: 5.2rem;
+}
+
+h2 {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: normal;
+  color: #11999E;
+}
+
+h3 {
+  font-family: 'Montserrat', sans-serif;
+  color: #11999E;
+}
+hr{
+  margin: 80px auto;
+  border-style: dotted;
+  border-width: thick;
+  border-top: none;
+  color: #919191;
+  width: 5%;
+}
+a{
+  color: #11999E;
+ font-family: 'Montserrat', sans-serif;
+ text-decoration: none;
+ padding: 0 20px;
+ font-size: 1.1rem;
+}
+a:hover{
+  color:gray;
+}
+/*============================= class styles  =============================*/
+.avatarImg{
+height: 250px;
+
+}
+
+
+.frontend{
+  color: gray;
+}
+.footer-link{
+  color: #11999E;
+}
+.skill-row{
+  margin: 100px auto ;
+  width: 50%;
+text-align: left;
+line-height: 2;
+
+}
+.coding-img{
+
+width: 30%;
+float: left;
+margin-right: 10px;
+}
+.copyright{
+font-size: 0.75rem;
+}
+
+
+.Problemsolving{
+  width: 30%;
+  float: right;
+  margin-left: 10px;
+}
+.top-container {
+  background-color: #CEE5D0;
+  position: relative;
+}
+
+.middle-container {
+  padding: 90px 0 20px;
+background-color: #f1efe1;
+}
+
+.bottom-container {
+  background-color: #FED2AA;
+  padding: 20px 0 20px 0;
+
+}
+
+.bottom-cloud {
+  position: absolute;
+  height: 80px;
+  left:18%;
+  opacity: 65%;
+}
+
+.top-cloud {
+  position: absolute;
+  margin-top: 10%;
+  margin-left: 23%;
+  height: 90px;
+  opacity: 60%;
+}
+
+.mountain-img {
+  margin-top: 1%;
+  height: 450px;
+  width: 850px;
+}
+.contact-me{
+  padding-bottom: 60px;
+line-height: 2;
+}
+.contactmeP{
+  padding-bottom: 30px;
+}
+.btn {
+  background: #FED2AA;
+  background-image: -webkit-linear-gradient(top, #FED2AA, #d4a379);
+  background-image: -moz-linear-gradient(top, #FED2AA, #d4a379);
+  background-image: -ms-linear-gradient(top, #FED2AA, #d4a379);
+  background-image: -o-linear-gradient(top, #FED2AA, #d4a379);
+  background-image: linear-gradient(to bottom, #FED2AA, #d4a379);
+  -webkit-border-radius: 13;
+  -moz-border-radius: 13;
+  border-radius: 13px;
+  -webkit-box-shadow: 0px 1px 3px #666666;
+  -moz-box-shadow: 0px 1px 3px #666666;
+  box-shadow: 0px 1px 3px #666666;
+  font-family: 'Montserrat', sans-serif;
+  color: #ffffff;
+  font-size: 20px;
+  padding: 10px 20px 10px 20px;
+  text-decoration: none;
+}
+
+.btn:hover {
+  background: #d49864;
+  text-decoration: none;
+}
+.bottom-container{
+  line-height: 2;
+
+}
