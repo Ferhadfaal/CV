@@ -15,8 +15,8 @@
     <p>کلیک کن تا صفحه Review (authenticated) در TripAdvisor باز شود</p>
 
     <button onclick="triggerFullIntent()">Open in TripAdvisor (Intent)</button><br>
-    <button onclick="triggerFullIntent2()">Open in TripAdvisor (Intentold)</button><br>
-    <button onclick="triggerFallback()" class="fallback">Fallback: Direct Link</button>
+    <button onclick="triggerFallback()" class="fallback">Fallback: Direct Link</button><br><br>
+    <button onclick="triggerFallback2()" class="fallback">Fallback: poc Link</button>
 
     <script>
         function triggerFullIntent() {
@@ -31,6 +31,12 @@
         function triggerFallback() {
             // fallback مستقیم (تست شده و کار می‌کند)
             window.location = "https://www.tripadvisor.com/UserReview";
+        }
+
+        function triggerFallback2() {
+            // fallback مستقیم (تست شده و کار می‌کند)
+            window.location = "https://raw.githubusercontent.com/Ferhadfaal/CV/main/poc2.html";
+            
         }
 
         // بعد از ۱.۵ ثانیه خودکار Intent را امتحان کن
