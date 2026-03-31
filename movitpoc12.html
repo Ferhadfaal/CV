@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moovit WebView PoC — evidence scope (honest)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        h1 {
+            color: #1565c0;
+            font-size: 1.35rem;
+        }
+
+        h2 {
+            font-size: 1.05rem;
+            color: #333;
+            margin-top: 1.5rem;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            margin: 10px;
+            background: #1565c0;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .note {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px auto;
+            max-width: 780px;
+            text-align: left;
+        }
+
+        .warn {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+        }
+
+        .ok {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+        }
+
+        pre {
+            text-align: left;
+            max-width: 780px;
+            margin: 16px auto;
+            padding: 12px;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 11px;
+        }
+
+        code {
+            font-size: 11px;
+            word-break: break-all;
+        }
+
+        ul {
+            margin: 0.5rem 0 0 1.2rem;
+            padding: 0;
+        }
+
+        li {
+            margin: 0.35rem 0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Moovit WebView / deep-link report — companion PoC</h1>
+    <p>This page is a <strong>truthful</strong> runtime witness for researchers and triage. It does <strong>not</strong> simulate
+        reading Moovit’s internal account database from JavaScript.</p>
+
+    <div class="note ok">
+        <strong>What this file honestly supports (if opened inside Moovit via your deep link)</strong>
+        <ul>
+            <li><strong>Attacker-controlled HTTPS content</strong> can load in the app’s WebView when the <code>url=</code>
+                parameter points here — you can see this page’s URL and timestamp in the JSON output.</li>
+            <li><strong>JavaScript in this origin</strong> can read normal WebView-exposed data (URL, query string,
+                <code>navigator</code>, screen/viewport, cookie string length, presence of <code>window.mobile</code>).</li>
+            <li><strong>Optional:</strong> HTTP(S) requests from this page (e.g. to a researcher-controlled endpoint) prove
+                <em>network egress from the WebView context</em> — use your own test URL; this file does not embed a secret
+                webhook.</li>
+        </ul>
+    </div>
+
+    <div class="note warn">
+        <strong>What this file does <em>not</em> prove by itself</strong>
+        <ul>
+            <li>It does <strong>not</strong> extract real full name, email, phone, payment card, or tickets from Moovit
+                private storage. Those are <strong>not</strong> available to arbitrary page JS unless the app exposes them
+                (bridge, injected data, or URL).</li>
+            <li><strong>Intent redirection</strong> (non-<code>http(s)</code> schemes handled via <code>Intent.parseUri</code>)
+                is a <strong>separate</strong> reproduction: use an appropriate <code>intent:</code> / custom-scheme link
+                or navigation as in your app analysis — not demonstrated by the JSON below unless you trigger that path.</li>
+            <li>If your report shows profile/payment screens or webhook captures, that evidence comes from <strong>those
+                    steps and screenshots/video</strong>, not from this HTML reading the DB.</li>
+        </ul>
+    </div>
+
+    <div class="note">
+        <strong>Report field mapping (honest)</strong><br>
+        The JSON includes <code>profile.full_name</code>, <code>email</code>, <code>mobile</code>,
+        <code>payment_card</code>, <code>tickets</code> only if you pass them as <strong>query parameters on this page’s
+            URL</strong> (for structured demos). Otherwise they are <code>null</code>. This makes the data lineage explicit
+        in the output under <code>profileSource</code>.
+    </div>
+
+    <h2>Actions</h2>
+    <button type="button" onclick="readAndAlert()">Collect evidence JSON (alert)</button>
+    <button type="button" onclick="readAndShow()">Collect evidence JSON (below)</button>
+
+    <pre id="out">(click a button)</pre>
+
+    <script>
+        var PROFILE_KEYS = ['full_name', 'email', 'mobile', 'payment_card', 'tickets'];
+
+        function getQueryParam(searchParams, key) {
+            var v = searchParams.get(key);
+            return v === null || v === '' ? null : v;
+        }
+
+        function buildProfile(searchParams) {
+            var profile = {};
+            for (var i = 0; i < PROFILE_KEYS.length; i++) {
+                var k = PROFILE_KEYS[i];
+                profile[k] = getQueryParam(searchParams, k);
+            }
+            return profile;
+        }
+
+        function collectRuntimeData() {
+            var hrefQueryParams = {};
+            var searchParams = null;
+            try {
+                var u = new URL(window.location.href);
+                searchParams = u.searchParams;
+                u.searchParams.forEach(function (value, key) {
+                    hrefQueryParams[key] = value;
+                });
+            } catch (e) {
+                hrefQueryParams._parseError = String(e);
+            }
+
+            var bridge = 'none';
+            try {
+                if (typeof window.mobile !== 'undefined') {
+                    bridge = 'window.mobile present';
+                }
+            } catch (err) {
+                bridge = 'error checking bridge: ' + err;
+            }
+
+            var profile = searchParams ? buildProfile(searchParams) : {
+                full_name: null,
+                email: null,
+                mobile: null,
+                payment_card: null,
+                tickets: null
+            };
+
+            var allNull = true;
+            for (var j = 0; j < PROFILE_KEYS.length; j++) {
+                if (profile[PROFILE_KEYS[j]] !== null) {
+                    allNull = false;
+                    break;
+                }
+            }
+
+            return {
+                pocPurpose: 'Honest WebView/deep-link evidence companion for Moovit report — see page HTML for scope.',
+                reportAlignment: {
+                    attackerControlledPageLoadedInWebView: true,
+                    evidence: 'If this JSON is produced inside Moovit, this document was loaded; pageUrl reflects the loaded URL.',
+                    javascriptReadsMoovitInternalAccountDatabase: false,
+                    note: 'Profile PII-shaped fields are only from this page URL query string, or null — not from app storage.',
+                    intentRedirectionViaShouldOverrideUrlLoading: 'not demonstrated by this static JSON; reproduce with separate intent/custom-scheme test per report.'
+                },
+                profile: profile,
+                profileFields: PROFILE_KEYS.slice(),
+                profileSource: allNull
+                    ? 'no matching query params (all null) — not reading Moovit internal storage'
+                    : 'values from page URL query string only (explicit demo / labelling)',
+                collectedAt: new Date().toISOString(),
+                pageUrl: window.location.href,
+                hrefQueryParams: hrefQueryParams,
+                referrer: document.referrer || null,
+                userAgent: navigator.userAgent,
+                language: navigator.language,
+                languages: navigator.languages ? Array.prototype.slice.call(navigator.languages) : [],
+                platform: navigator.platform,
+                cookieEnabled: navigator.cookieEnabled,
+                timeZoneOffsetMinutes: new Date().getTimezoneOffset(),
+                screen: {
+                    width: screen.width,
+                    height: screen.height,
+                    availWidth: screen.availWidth,
+                    availHeight: screen.availHeight
+                },
+                viewport: {
+                    innerWidth: window.innerWidth,
+                    innerHeight: window.innerHeight
+                },
+                javascriptBridge: bridge,
+                documentCookieLength: typeof document.cookie === 'string' ? document.cookie.length : -1
+            };
+        }
+
+        function readAndAlert() {
+            var data = collectRuntimeData();
+            var text = JSON.stringify(data, null, 2);
+            if (text.length > 3500) {
+                text = text.slice(0, 3500) + '\n... (truncated for alert size)';
+            }
+            alert(text);
+        }
+
+        function readAndShow() {
+            var data = collectRuntimeData();
+            document.getElementById('out').textContent = JSON.stringify(data, null, 2);
+        }
+
+        window.onload = function () {
+            console.log('[pocq] loaded', window.location.href);
+        };
+    </script>
+</body>
+
+</html>
