@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebView runtime probe</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        h1 {
+            color: #1565c0;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            margin: 10px;
+            background: #1565c0;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .note {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px auto;
+            max-width: 720px;
+            text-align: left;
+        }
+
+        pre {
+            text-align: left;
+            max-width: 720px;
+            margin: 16px auto;
+            padding: 12px;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>WebView runtime probe</h1>
+    <p>Collects only what JavaScript can read in this page context (no hardcoded user secrets).</p>
+
+    <div class="note">
+        <strong>Note:</strong> This cannot read Moovit internal storage, accounts, or tickets. It only reads
+        browser/WebView-exposed values (URL, query string, navigator, screen). To pass values in, append them
+        to this page URL as query parameters, e.g. <code>?demo=1</code> — they will appear under
+        <code>hrefQueryParams</code>.
+    </div>
+
+    <button type="button" onclick="readAndAlert()">Read runtime data and alert</button>
+    <button type="button" onclick="readAndShow()">Read runtime data and show below</button>
+
+    <pre id="out">(click a button)</pre>
+
+    <script>
+        function collectRuntimeData() {
+            const hrefQueryParams = {};
+            try {
+                const u = new URL(window.location.href);
+                u.searchParams.forEach(function (value, key) {
+                    hrefQueryParams[key] = value;
+                });
+            } catch (e) {
+                hrefQueryParams._parseError = String(e);
+            }
+
+            var bridge = 'none';
+            try {
+                if (typeof window.mobile !== 'undefined') {
+                    bridge = 'window.mobile present';
+                }
+            } catch (e) {
+                bridge = 'error checking bridge: ' + e;
+            }
+
+            return {
+                collectedAt: new Date().toISOString(),
+                pageUrl: window.location.href,
+                hrefQueryParams: hrefQueryParams,
+                referrer: document.referrer || null,
+                userAgent: navigator.userAgent,
+                language: navigator.language,
+                languages: navigator.languages ? Array.prototype.slice.call(navigator.languages) : [],
+                platform: navigator.platform,
+                cookieEnabled: navigator.cookieEnabled,
+                timeZoneOffsetMinutes: new Date().getTimezoneOffset(),
+                screen: {
+                    width: screen.width,
+                    height: screen.height,
+                    availWidth: screen.availWidth,
+                    availHeight: screen.availHeight
+                },
+                viewport: {
+                    innerWidth: window.innerWidth,
+                    innerHeight: window.innerHeight
+                },
+                javascriptBridge: bridge,
+                documentCookieLength: typeof document.cookie === 'string' ? document.cookie.length : -1
+            };
+        }
+
+        function readAndAlert() {
+            var data = collectRuntimeData();
+            var text = JSON.stringify(data, null, 2);
+            if (text.length > 3500) {
+                text = text.slice(0, 3500) + '\n... (truncated for alert size)';
+            }
+            alert(text);
+        }
+
+        function readAndShow() {
+            var data = collectRuntimeData();
+            document.getElementById('out').textContent = JSON.stringify(data, null, 2);
+        }
+
+        window.onload = function () {
+            console.log('[probe] page loaded', window.location.href);
+        };
+    </script>
+</body>
+
+</html>
