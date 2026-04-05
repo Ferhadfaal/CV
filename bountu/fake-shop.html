@@ -1,81 +1,76 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shop & Services - SBB</title>
     <style>
-        body { 
-            margin: 0; 
-            font-family: Arial, Helvetica, sans-serif; 
-            background: #f8f9fa; 
-            color: #333; 
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f8f9fa;
+            color: #333;
+            padding-bottom: env(safe-area-inset-bottom, 0);
         }
-        .header {
-            background: #e30613;
-            color: white;
-            padding: 16px 15px;
-            text-align: center;
-            font-size: 1.35em;
-            font-weight: bold;
-            position: relative;
+
+        .app-header {
+            margin: 0;
+            padding: 0;
+            line-height: 0;
         }
-        .header .back { 
-            position: absolute; 
-            left: 15px; 
-            font-size: 1.9em; 
-            line-height: 1;
+
+        .app-header img {
+            display: block;
+            width: 100%;
+            height: auto;
+            vertical-align: top;
         }
-        .tabs {
-            display: flex;
-            background: #e30613;
-        }
-        .tab {
-            flex: 1;
-            padding: 14px 10px;
-            text-align: center;
-            font-weight: bold;
-            color: white;
-            font-size: 1.05em;
-        }
-        .tab.active { 
-            background: #c0040f; 
-            border-bottom: 4px solid white;
-        }
+
+        /* Welcome Box */
         .welcome-box {
             background: white;
             margin: 15px;
             padding: 18px 15px;
             border-radius: 10px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
+
+        /* Router Image */
         .router-container {
             text-align: center;
-            margin: 40px 20px 30px;
+            margin: 35px 20px 25px;
         }
+
         .router-container img {
             width: 190px;
-            filter: drop-shadow(0 6px 12px rgba(0,0,0,0.15));
+            filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));
         }
+
+        /* Content */
         .content {
             padding: 0 20px;
             text-align: center;
         }
+
         .content h2 {
             color: #003087;
-            margin: 15px 0 10px;
+            margin: 15px 0 12px;
             font-size: 1.45em;
         }
+
+        /* Form */
         .form-box {
             background: white;
             margin: 20px;
             padding: 25px 20px;
             border-radius: 10px;
-            box-shadow: 0 3px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
         }
+
         input {
             width: 100%;
             padding: 14px;
@@ -85,6 +80,7 @@
             font-size: 1.1em;
             box-sizing: border-box;
         }
+
         .btn-continue {
             background: #e30613;
             color: white;
@@ -97,85 +93,95 @@
             margin-top: 15px;
             cursor: pointer;
         }
+
+        /* PoC Banner - کوتاه و وسط صفحه */
         .poc-banner {
             background: #003087;
             color: white;
             text-align: center;
-            padding: 10px;
+            padding: 12px 15px;
             font-size: 0.95em;
             font-weight: 500;
+            margin: 15px 20px;
+            border-radius: 8px;
         }
-        .footer {
+
+        .app-footer {
             position: fixed;
+            left: 0;
+            right: 0;
             bottom: 0;
+            margin: 0;
+            padding: 0;
+            line-height: 0;
+            z-index: 100;
+        }
+
+        .app-footer img {
+            display: block;
             width: 100%;
-            background: white;
-            border-top: 1px solid #ddd;
-            display: flex;
-            justify-content: space-around;
-            padding: 10px 0 5px;
-            font-size: 1.1em;
+            height: auto;
+            vertical-align: top;
+        }
+
+        /* فاصله تا فوتر ثابت تا محتوا زیر عکس نرود */
+        .page-wrap {
+            padding-bottom: min(28vw, 140px);
         }
     </style>
 </head>
+
 <body>
 
-    <!-- POC Banner - برای Triager واضح باشد -->
-    <div class="poc-banner">
-        PoC - This is a demonstration page created only to prove the vulnerability.<br>
-        No real hacking or data theft is performed.
-    </div>
+    <header class="app-header">
+        <img src="Header.png" alt="Shop &amp; Services">
+    </header>
 
-    <div class="header">
-        <span class="back">←</span>
-        Shop &amp; Services
-    </div>
+    <div class="page-wrap">
 
-    <div class="tabs">
-        <div class="tab active">Quick access</div>
-        <div class="tab">Services</div>
-    </div>
-
-    <div class="welcome-box">
-        <div>
-            <strong>Welcome back!</strong><br>
-            You are not logged in.
+        <!-- Welcome Box -->
+        <div class="welcome-box">
+            <div>
+                <strong>Hello!</strong><br>
+                You are not logged in.
+            </div>
+            <button
+                style="padding:10px 24px; border:2px solid #e30613; background:white; color:#e30613; border-radius:25px; font-weight:bold;">Login</button>
         </div>
-        <button style="padding:10px 24px; border:2px solid #e30613; background:white; color:#e30613; border-radius:25px; font-weight:bold;">Login</button>
-    </div>
 
-    <div class="router-container">
-        <img src="https://i.imgur.com/2QJqZ8K.png" alt="SBB Router">
-    </div>
 
-    <div class="content">
-        <h2>Special Offer - 50% Discount</h2>
-        <p style="font-size:1.15em; line-height:1.5;">
-            To claim your limited 50% discount on travel tickets and packages,<br>
-            please confirm your contact information below.
-        </p>
-    </div>
+        <!-- PoC Banner - کوتاه و در وسط -->
+        <div class="poc-banner">
+            PoC Demonstration Only<br>
+            This page is created solely to prove the vulnerability.
+        </div>
 
-    <div class="form-box">
-        <input type="email" placeholder="Email address" id="email">
-        <input type="text" placeholder="Full name" id="name">
-        <button onclick="submitPoC()" class="btn-continue">Continue to Claim Discount</button>
-    </div>
+        <!-- Content + Form -->
+        <div class="content">
+            <h2>Special 50% Discount Offer</h2>
+            <p style="font-size:1.15em; line-height:1.6;">
+                To claim your limited discount on SBB travel tickets and packages,<br>
+                please confirm your contact information below.
+            </p>
+        </div>
 
-    <div class="footer">
-        <div>🕒</div>
-        <div>🚂</div>
-        <div>🔀</div>
-        <div>📱</div>
-        <div style="background:#e30613; color:white; border-radius:50%; width:42px; height:42px; display:flex; align-items:center; justify-content:center; font-size:1.3em;">🛒</div>
-        <div>👤</div>
-    </div>
+        <div class="form-box">
+            <input type="email" placeholder="Email address" id="email">
+            <input type="text" placeholder="Full name" id="name">
+            <button onclick="submitPoC()" class="btn-continue">Continue to Claim Discount</button>
+        </div>
+
+    </div><!-- /.page-wrap -->
+
+    <footer class="app-footer">
+        <img src="Footer.png" alt="">
+    </footer>
 
     <script>
         function submitPoC() {
             const email = document.getElementById('email').value.trim();
             if (email) {
-                alert("✅ PoC Successful!\n\nEmail captured inside SBB app trusted context.\n\nThis demonstrates the ability to display attacker-controlled content inside the official SBB application.");
+                alert("✅ PoC Successful!\n\nThis demonstrates that attacker-controlled content can be displayed inside the official SBB application context.");
             } else {
                 alert("Please enter your email address");
             }
@@ -183,4 +189,5 @@
     </script>
 
 </body>
+
 </html>
