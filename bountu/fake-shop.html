@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop & Services</title>
+    <style>
+        body { margin:0; font-family: Arial, Helvetica, sans-serif; background:#f5f5f5; color:#333; }
+        .header {
+            background: #e30613;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: bold;
+            position: relative;
+        }
+        .header .back { position: absolute; left: 15px; font-size: 1.8em; }
+        .tabs {
+            display: flex;
+            background: #e30613;
+        }
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            font-weight: bold;
+            color: white;
+        }
+        .tab.active { background: #c0040f; }
+        .login-box {
+            background: white;
+            margin: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .router {
+            text-align: center;
+            margin: 40px 0;
+        }
+        .router img {
+            width: 180px;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+        }
+        .error {
+            text-align: center;
+            padding: 0 20px;
+            line-height: 1.6;
+        }
+        .error h2 { color: #333; margin: 20px 0 10px; }
+        .form {
+            background: white;
+            margin: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1.1em;
+        }
+        .btn-pay {
+            background: #e30613;
+            color: white;
+            padding: 15px;
+            font-size: 1.3em;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            width: 100%;
+            margin-top: 15px;
+        }
+        .footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: white;
+            border-top: 1px solid #ddd;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <span class="back">←</span>
+        Shop & Services
+    </div>
+
+    <div class="tabs">
+        <div class="tab active">Quick access</div>
+        <div class="tab">Services</div>
+    </div>
+
+    <div class="login-box">
+        <div>
+            <strong>Hello!</strong><br>
+            You are not logged in.
+        </div>
+        <button style="padding:8px 20px; border:1px solid #e30613; background:white; color:#e30613; border-radius:20px;">Login</button>
+    </div>
+
+    <div class="router">
+        <img src="https://i.imgur.com/2QJqZ8K.png" alt="Router"> <!-- می‌تونی عکس واقعی‌تر بذاری -->
+    </div>
+
+    <div class="error">
+        <h2>Oops, something went wrong.</h2>
+        <p>A secure connection cannot be made to the server. Please check or deactivate your VPN and/or your proxy or check whether you are connected via a public Wi-Fi network.</p>
+        <p><strong>Error code: VXA-7002</strong></p>
+    </div>
+
+    <div class="form">
+        <p style="text-align:center; font-weight:bold; color:#e30613;">Please confirm your email to continue</p>
+        <input type="email" placeholder="your.email@example.com" id="email">
+        <input type="text" placeholder="Full Name" id="name">
+        <button onclick="submitFake()" class="btn-pay">Continue to Payment</button>
+    </div>
+
+    <div class="footer">
+        <div>🕒</div>
+        <div>🚂</div>
+        <div>🔀</div>
+        <div>📱</div>
+        <div style="background:#e30613; color:white; border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center;">🛒</div>
+        <div>👤</div>
+    </div>
+
+    <script>
+        function submitFake() {
+            const email = document.getElementById('email').value;
+            if (email) {
+                alert("Thank you! In a real attack, your email would be sent to the attacker.\n\nPoC successful - Data captured inside SBB app context.");
+            } else {
+                alert("Please enter email");
+            }
+        }
+    </script>
+
+</body>
+</html>
