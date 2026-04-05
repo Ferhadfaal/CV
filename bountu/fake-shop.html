@@ -3,80 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shop & Services</title>
+    <title>Shop & Services - SBB</title>
     <style>
-        body { margin:0; font-family: Arial, Helvetica, sans-serif; background:#f5f5f5; color:#333; }
+        body { 
+            margin: 0; 
+            font-family: Arial, Helvetica, sans-serif; 
+            background: #f8f9fa; 
+            color: #333; 
+        }
         .header {
             background: #e30613;
             color: white;
-            padding: 15px;
+            padding: 16px 15px;
             text-align: center;
-            font-size: 1.3em;
+            font-size: 1.35em;
             font-weight: bold;
             position: relative;
         }
-        .header .back { position: absolute; left: 15px; font-size: 1.8em; }
+        .header .back { 
+            position: absolute; 
+            left: 15px; 
+            font-size: 1.9em; 
+            line-height: 1;
+        }
         .tabs {
             display: flex;
             background: #e30613;
         }
         .tab {
             flex: 1;
-            padding: 12px;
+            padding: 14px 10px;
             text-align: center;
             font-weight: bold;
             color: white;
+            font-size: 1.05em;
         }
-        .tab.active { background: #c0040f; }
-        .login-box {
+        .tab.active { 
+            background: #c0040f; 
+            border-bottom: 4px solid white;
+        }
+        .welcome-box {
             background: white;
             margin: 15px;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 18px 15px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .router {
+        .router-container {
             text-align: center;
-            margin: 40px 0;
+            margin: 40px 20px 30px;
         }
-        .router img {
-            width: 180px;
-            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+        .router-container img {
+            width: 190px;
+            filter: drop-shadow(0 6px 12px rgba(0,0,0,0.15));
         }
-        .error {
-            text-align: center;
+        .content {
             padding: 0 20px;
-            line-height: 1.6;
+            text-align: center;
         }
-        .error h2 { color: #333; margin: 20px 0 10px; }
-        .form {
+        .content h2 {
+            color: #003087;
+            margin: 15px 0 10px;
+            font-size: 1.45em;
+        }
+        .form-box {
             background: white;
             margin: 20px;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 25px 20px;
+            border-radius: 10px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.1);
         }
         input {
             width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border: 1px solid #ccc;
-            border-radius: 6px;
+            padding: 14px;
+            margin: 12px 0;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
             font-size: 1.1em;
+            box-sizing: border-box;
         }
-        .btn-pay {
+        .btn-continue {
             background: #e30613;
             color: white;
-            padding: 15px;
-            font-size: 1.3em;
+            padding: 16px;
+            font-size: 1.35em;
             font-weight: bold;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             width: 100%;
             margin-top: 15px;
+            cursor: pointer;
+        }
+        .poc-banner {
+            background: #003087;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            font-size: 0.95em;
+            font-weight: 500;
         }
         .footer {
             position: fixed;
@@ -86,16 +113,22 @@
             border-top: 1px solid #ddd;
             display: flex;
             justify-content: space-around;
-            padding: 8px 0;
-            font-size: 0.9em;
+            padding: 10px 0 5px;
+            font-size: 1.1em;
         }
     </style>
 </head>
 <body>
 
+    <!-- POC Banner - برای Triager واضح باشد -->
+    <div class="poc-banner">
+        PoC - This is a demonstration page created only to prove the vulnerability.<br>
+        No real hacking or data theft is performed.
+    </div>
+
     <div class="header">
         <span class="back">←</span>
-        Shop & Services
+        Shop &amp; Services
     </div>
 
     <div class="tabs">
@@ -103,29 +136,30 @@
         <div class="tab">Services</div>
     </div>
 
-    <div class="login-box">
+    <div class="welcome-box">
         <div>
-            <strong>Hello!</strong><br>
+            <strong>Welcome back!</strong><br>
             You are not logged in.
         </div>
-        <button style="padding:8px 20px; border:1px solid #e30613; background:white; color:#e30613; border-radius:20px;">Login</button>
+        <button style="padding:10px 24px; border:2px solid #e30613; background:white; color:#e30613; border-radius:25px; font-weight:bold;">Login</button>
     </div>
 
-    <div class="router">
-        <img src="https://i.imgur.com/2QJqZ8K.png" alt="Router"> <!-- می‌تونی عکس واقعی‌تر بذاری -->
+    <div class="router-container">
+        <img src="https://i.imgur.com/2QJqZ8K.png" alt="SBB Router">
     </div>
 
-    <div class="error">
-        <h2>Oops, something went wrong.</h2>
-        <p>A secure connection cannot be made to the server. Please check or deactivate your VPN and/or your proxy or check whether you are connected via a public Wi-Fi network.</p>
-        <p><strong>Error code: VXA-7002</strong></p>
+    <div class="content">
+        <h2>Special Offer - 50% Discount</h2>
+        <p style="font-size:1.15em; line-height:1.5;">
+            To claim your limited 50% discount on travel tickets and packages,<br>
+            please confirm your contact information below.
+        </p>
     </div>
 
-    <div class="form">
-        <p style="text-align:center; font-weight:bold; color:#e30613;">Please confirm your email to continue</p>
-        <input type="email" placeholder="your.email@example.com" id="email">
-        <input type="text" placeholder="Full Name" id="name">
-        <button onclick="submitFake()" class="btn-pay">Continue to Payment</button>
+    <div class="form-box">
+        <input type="email" placeholder="Email address" id="email">
+        <input type="text" placeholder="Full name" id="name">
+        <button onclick="submitPoC()" class="btn-continue">Continue to Claim Discount</button>
     </div>
 
     <div class="footer">
@@ -133,17 +167,17 @@
         <div>🚂</div>
         <div>🔀</div>
         <div>📱</div>
-        <div style="background:#e30613; color:white; border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center;">🛒</div>
+        <div style="background:#e30613; color:white; border-radius:50%; width:42px; height:42px; display:flex; align-items:center; justify-content:center; font-size:1.3em;">🛒</div>
         <div>👤</div>
     </div>
 
     <script>
-        function submitFake() {
-            const email = document.getElementById('email').value;
+        function submitPoC() {
+            const email = document.getElementById('email').value.trim();
             if (email) {
-                alert("Thank you! In a real attack, your email would be sent to the attacker.\n\nPoC successful - Data captured inside SBB app context.");
+                alert("✅ PoC Successful!\n\nEmail captured inside SBB app trusted context.\n\nThis demonstrates the ability to display attacker-controlled content inside the official SBB application.");
             } else {
-                alert("Please enter email");
+                alert("Please enter your email address");
             }
         }
     </script>
